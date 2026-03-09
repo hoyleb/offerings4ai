@@ -1,0 +1,12 @@
+{$SITE_ADDRESS} {
+  encode gzip zstd
+
+  @api path /api/* /docs /docs/* /openapi.json /redoc /.well-known/* /mcp /mcp/* /health /healthz
+  handle @api {
+    reverse_proxy api:8899
+  }
+
+  handle {
+    reverse_proxy frontend:5188
+  }
+}
