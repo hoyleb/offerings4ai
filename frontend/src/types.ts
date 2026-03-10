@@ -5,12 +5,29 @@ export interface TokenResponse {
   token_type: string
 }
 
+export interface VerificationDispatchResponse {
+  message: string
+  debug_verify_url: string | null
+  debug_verify_token: string | null
+}
+
+export interface RegistrationResponse extends VerificationDispatchResponse {
+  user: User
+  requires_email_verification: boolean
+}
+
+export interface EmailVerificationResponse {
+  message: string
+}
+
 export interface User {
   id: string
   email: string
   full_name: string
   payout_address: string | null
   reputation_score: number
+  is_email_verified: boolean
+  email_verified_at: string | null
   created_at: string
 }
 

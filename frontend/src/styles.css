@@ -96,6 +96,15 @@ button {
   font-weight: 600;
 }
 
+.secondary-button {
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #dbeafe;
+  font-weight: 600;
+}
+
 .banner {
   margin-bottom: 18px;
   padding: 14px 18px;
@@ -560,6 +569,25 @@ textarea {
   color: #dbe6f3;
   display: grid;
   gap: 8px;
+}
+
+.dev-verification-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed rgba(134, 239, 172, 0.32);
+  background: rgba(8, 29, 21, 0.52);
+}
+
+.dev-verification-panel strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #bbf7d0;
+}
+
+.dev-verification-panel p {
+  margin: 0 0 12px;
+  color: #cbd5e1;
 }
 
 .submission-disclosure {

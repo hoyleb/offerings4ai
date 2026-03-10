@@ -1,4 +1,13 @@
-import type { DashboardSummary, Idea, IdeaPayload, TokenResponse, User } from '../types'
+import type {
+  DashboardSummary,
+  EmailVerificationResponse,
+  Idea,
+  IdeaPayload,
+  RegistrationResponse,
+  TokenResponse,
+  User,
+  VerificationDispatchResponse,
+} from '../types'
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1'])
 
@@ -132,8 +141,8 @@ export function registerUser(payload: {
   password: string
   full_name: string
   payout_address: string
-}): Promise<User> {
-  return request<User>('/api/auth/register', {
+}): Promise<RegistrationResponse> {
+  return request<RegistrationResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -146,6 +155,26 @@ export function loginUser(payload: { email: string; password: string }): Promise
   return request<TokenResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Confirm an email verification token issued during registration.
+ */
+export function verifyEmail(token: string): Promise<EmailVerificationResponse> {
+  return request<EmailVerificationResponse>('/api/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}
+
+/**
+ * Send a fresh verification email when an account is still pending confirmation.
+ */
+export function resendVerificationEmail(email: string): Promise<VerificationDispatchResponse> {
+  return request<VerificationDispatchResponse>('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
   })
 }
 

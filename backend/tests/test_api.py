@@ -11,6 +11,8 @@ from sqlalchemy.orm import sessionmaker
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{Path('/tmp/sparkmarket_test.sqlite3')}"
 os.environ["QUEUE_MODE"] = "inline"
 os.environ["REDIS_URL"] = "redis://localhost:6379/9"
+os.environ["APP_ENV"] = "development"
+os.environ["EMAIL_DELIVERY_MODE"] = "log"
 
 from app.db import Base  # noqa: E402
 from app.dependencies import get_db  # noqa: E402
@@ -47,7 +49,15 @@ def register_and_login(client: TestClient, email: str = "user@example.com") -> d
             "payout_address": "acct_demo_001",
         },
     )
-    assert register.status_code == 200
+    assert register.status_code == 201
+    debug_token = register.json()["debug_verify_token"]
+    assert debug_token
+
+    verify = client.post(
+        "/api/auth/verify-email",
+        json={"token": debug_token},
+    )
+    assert verify.status_code == 200
 
     login = client.post(
         "/api/auth/login",
@@ -241,3 +251,57 @@ def test_prompt_injection_submission_rejected():
     )
     assert blocked.status_code == 422
     assert "prompt-injection" in blocked.json()["detail"]
+
+
+def test_login_requires_verified_email():
+    client = TestClient(app)
+
+    register = client.post(
+        "/api/auth/register",
+        json={
+            "email": "pending@example.com",
+            "password": "supersecret123",
+            "full_name": "Pending User",
+            "payout_address": "acct_demo_001",
+        },
+    )
+    assert register.status_code == 201
+    assert register.json()["user"]["is_email_verified"] is False
+
+    login = client.post(
+        "/api/auth/login",
+        json={"email": "pending@example.com", "password": "supersecret123"},
+    )
+    assert login.status_code == 403
+    assert login.json()["detail"] == "Verify your email address before logging in"
+
+
+def test_resend_verification_returns_new_debug_token():
+    client = TestClient(app)
+
+    register = client.post(
+        "/api/auth/register",
+        json={
+            "email": "resend@example.com",
+            "password": "supersecret123",
+            "full_name": "Resend User",
+            "payout_address": "acct_demo_001",
+        },
+    )
+    assert register.status_code == 201
+    original_token = register.json()["debug_verify_token"]
+
+    resend = client.post(
+        "/api/auth/resend-verification",
+        json={"email": "resend@example.com"},
+    )
+    assert resend.status_code == 200
+    replacement_token = resend.json()["debug_verify_token"]
+    assert replacement_token
+    assert replacement_token != original_token
+
+    stale_verify = client.post("/api/auth/verify-email", json={"token": original_token})
+    assert stale_verify.status_code == 400
+
+    fresh_verify = client.post("/api/auth/verify-email", json={"token": replacement_token})
+    assert fresh_verify.status_code == 200

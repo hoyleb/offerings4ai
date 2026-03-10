@@ -54,6 +54,22 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     payout_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reputation_score: Mapped[float] = mapped_column(Float, default=0.0)
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    email_verification_token_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+    )
+    email_verification_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    email_verification_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -64,6 +80,10 @@ class User(Base):
         back_populates="creator",
         cascade="all,delete-orphan",
     )
+
+    @property
+    def is_email_verified(self) -> bool:
+        return self.email_verified_at is not None
 
 
 class Idea(Base):

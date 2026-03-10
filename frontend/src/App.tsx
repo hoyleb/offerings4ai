@@ -10,7 +10,9 @@ import {
   fetchMe,
   loginUser,
   registerUser,
+  resendVerificationEmail,
   submitIdea,
+  verifyEmail,
 } from './lib/api'
 import type { DashboardSummary, Idea, IdeaPayload, User } from './types'
 import './styles.css'
@@ -34,6 +36,7 @@ const AI_NOTES = [
 const HUMAN_NOTES = [
   'Submit structured ideas so agents can compare them consistently instead of guessing from prose.',
   'Scores, payout events, and rights terms are logged explicitly when an idea is evaluated or acquired.',
+  'New creator accounts must confirm their email address before they can log in or submit ideas.',
   'Use a durable email and, if possible, an optional payout destination so future buyers can still reach you later.',
   'Submissions and disclosed contact details are public by design, so do not post secrets, embargoed information, or anything you cannot publish.',
   'Rejected ideas still matter because they help test whether human novelty produces economic value or mostly noise.',
@@ -154,6 +157,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [pendingVerificationToken, setPendingVerificationToken] = useState('')
 
   const isAuthenticated = useMemo(() => token.length > 0, [token])
   const submitTargetId = isAuthenticated ? 'submit-idea-form' : 'creator-access'
@@ -234,6 +238,54 @@ function App() {
     void load()
   }, [token])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const url = new URL(window.location.href)
+    const verificationToken = url.searchParams.get('verify_email_token')
+    if (!verificationToken) {
+      return
+    }
+
+    url.searchParams.delete('verify_email_token')
+    window.history.replaceState({}, document.title, url.toString())
+
+    let cancelled = false
+
+    const confirmEmail = async () => {
+      setBusy(true)
+      setError('')
+      setMessage('')
+      try {
+        const response = await verifyEmail(verificationToken)
+        if (!cancelled) {
+          setPendingVerificationToken('')
+          setMessage(response.message)
+        }
+      } catch (verificationError) {
+        if (!cancelled) {
+          setError(
+            verificationError instanceof Error
+              ? verificationError.message
+              : 'Email verification failed',
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setBusy(false)
+        }
+      }
+    }
+
+    void confirmEmail()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const refresh = async (activeToken: string) => {
     const [nextIdeas, nextSummary] = await Promise.all([
       fetchIdeas(activeToken),
@@ -253,11 +305,9 @@ function App() {
     setError('')
     setMessage('')
     try {
-      await registerUser(payload)
-      const auth = await loginUser({ email: payload.email, password: payload.password })
-      localStorage.setItem(TOKEN_STORAGE_KEY, auth.access_token)
-      setToken(auth.access_token)
-      setMessage('Account created. You can submit ideas now.')
+      const registration = await registerUser(payload)
+      setPendingVerificationToken(registration.debug_verify_token ?? '')
+      setMessage(registration.message)
     } catch (registerError) {
       setError(registerError instanceof Error ? registerError.message : 'Registration failed')
     } finally {
@@ -276,6 +326,46 @@ function App() {
       setMessage('Logged in successfully.')
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Login failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleResendVerification = async (email: string) => {
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await resendVerificationEmail(email)
+      setPendingVerificationToken(response.debug_verify_token ?? '')
+      setMessage(response.message)
+    } catch (resendError) {
+      setError(
+        resendError instanceof Error ? resendError.message : 'Verification resend failed',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDevelopmentVerify = async () => {
+    if (!pendingVerificationToken) {
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await verifyEmail(pendingVerificationToken)
+      setPendingVerificationToken('')
+      setMessage(response.message)
+    } catch (verificationError) {
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : 'Email verification failed',
+      )
     } finally {
       setBusy(false)
     }
@@ -501,7 +591,15 @@ function App() {
       </section>
 
       {!isAuthenticated ? (
-        <AuthPanel busy={busy} onLogin={handleLogin} onRegister={handleRegister} sectionId="creator-access" />
+        <AuthPanel
+          busy={busy}
+          hasPendingDevelopmentVerification={pendingVerificationToken.length > 0}
+          onDevelopmentVerify={handleDevelopmentVerify}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onResendVerification={handleResendVerification}
+          sectionId="creator-access"
+        />
       ) : null}
       {isAuthenticated ? (
         <div className="workspace-grid">

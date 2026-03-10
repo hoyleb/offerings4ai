@@ -33,7 +33,20 @@ class UserPublic(BaseModel):
     full_name: str
     payout_address: str | None
     reputation_score: float
+    is_email_verified: bool
+    email_verified_at: datetime | None
     created_at: datetime
+
+
+class VerificationDispatchResponse(BaseModel):
+    message: str
+    debug_verify_url: str | None = None
+    debug_verify_token: str | None = None
+
+
+class RegistrationResponse(VerificationDispatchResponse):
+    user: UserPublic
+    requires_email_verification: bool = True
 
 
 class IdeaCreate(BaseModel):
@@ -110,3 +123,15 @@ class HealthResponse(BaseModel):
     status: str
     queue_mode: str
     app_env: str
+
+
+class EmailVerificationRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=255)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class EmailVerificationResponse(BaseModel):
+    message: str

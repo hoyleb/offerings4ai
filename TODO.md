@@ -51,3 +51,21 @@ Short Name: db-migrations
 Description: Replace startup-time schema creation with versioned database migrations and a proper production migration workflow.
 Status: queued
 ```
+
+```id="ideas1760100006"
+## Backlog Item
+Date: 2026-03-10
+Source: user
+Short Name: ai-tagging-and-clustering
+Description: Add AI-generated tags, cluster similar ideas into shared groups, and surface when a new idea is likely a match to an existing idea instead of treating it only as a duplicate flag.
+Status: queued
+```
+
+```id="spam1760100007"
+## Backlog Item
+Date: 2026-03-10
+Source: user
+Short Name: anti-spam-hardening
+Description: Strengthen anti-spam defenses beyond the current hourly per-user limit with account-risk scoring, IP or device throttling, verification friction, abuse monitoring, and moderation controls for mass idea spam.
+Status: queued
+```

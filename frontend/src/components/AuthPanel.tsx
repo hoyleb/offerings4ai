@@ -11,6 +11,9 @@ interface AuthPanelProps {
     full_name: string
     payout_address: string
   }) => Promise<void>
+  onResendVerification: (email: string) => Promise<void>
+  onDevelopmentVerify?: () => Promise<void>
+  hasPendingDevelopmentVerification?: boolean
   sectionId?: string
 }
 
@@ -27,7 +30,15 @@ function helperTone(isValid: boolean, hasValue: boolean): 'valid' | 'warning' | 
   return isValid ? 'valid' : 'warning'
 }
 
-function AuthPanel({ busy, onLogin, onRegister, sectionId }: AuthPanelProps) {
+function AuthPanel({
+  busy,
+  onLogin,
+  onRegister,
+  onResendVerification,
+  onDevelopmentVerify,
+  hasPendingDevelopmentVerification = false,
+  sectionId,
+}: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>('register')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -75,8 +86,8 @@ function AuthPanel({ busy, onLogin, onRegister, sectionId }: AuthPanelProps) {
           <h2>{mode === 'register' ? 'Create creator account' : 'Sign in'}</h2>
           <p className="panel-intro">
             {mode === 'register'
-              ? 'Create an account to publish structured ideas into the public market. Use a durable email; if it also overlaps with a payment identifier, future buyers may have an easier time finding you.'
-              : 'Use the same email and 8-128 character password you created during registration.'}
+              ? 'Create an account to publish structured ideas into the public market. You will need to confirm the email address before login and idea submission are enabled.'
+              : 'Use the same verified email and 8-128 character password you created during registration.'}
           </p>
         </div>
         <div className="segmented-control">
@@ -181,6 +192,18 @@ function AuthPanel({ busy, onLogin, onRegister, sectionId }: AuthPanelProps) {
         <button className="primary-button" disabled={busy} type="submit">
           {busy ? 'Working...' : mode === 'register' ? 'Create account' : 'Login'}
         </button>
+        {mode === 'login' ? (
+          <button
+            className="secondary-button"
+            disabled={busy || email.trim().length === 0}
+            onClick={() => {
+              void onResendVerification(email)
+            }}
+            type="button"
+          >
+            Resend verification email
+          </button>
+        ) : null}
       </form>
       {mode === 'register' ? (
         <aside className="signup-explainer">
@@ -191,6 +214,7 @@ function AuthPanel({ busy, onLogin, onRegister, sectionId }: AuthPanelProps) {
             those rails still exist.
           </p>
           <ul className="signup-checklist">
+            <li>Verify the registration email before you can log in or submit ideas.</li>
             <li>Use a reachable email you expect to keep long-term.</li>
             <li>Add a payout destination if you already know one.</li>
             <li>Prefer overlap with familiar payout rails when that is safe and convenient.</li>
@@ -201,6 +225,25 @@ function AuthPanel({ busy, onLogin, onRegister, sectionId }: AuthPanelProps) {
             buyers more than one route to reach you if your idea is later rewarded.
           </p>
         </aside>
+      ) : null}
+      {hasPendingDevelopmentVerification && onDevelopmentVerify ? (
+        <div className="dev-verification-panel">
+          <strong>Development shortcut</strong>
+          <p>
+            Local log mode exposes a direct verification step so you can finish the signup flow
+            without a real SMTP server.
+          </p>
+          <button
+            className="secondary-button"
+            disabled={busy}
+            onClick={() => {
+              void onDevelopmentVerify()
+            }}
+            type="button"
+          >
+            Verify email now (development)
+          </button>
+        </div>
       ) : null}
     </section>
   )

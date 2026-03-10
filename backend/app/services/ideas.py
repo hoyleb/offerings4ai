@@ -75,6 +75,11 @@ def enqueue_evaluation(idea_id: str) -> None:
 
 
 def create_idea(db: Session, user: User, payload: IdeaCreate) -> Idea:
+    if user.email_verified_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Verify your email address before submitting ideas",
+        )
     enforce_submission_rate_limit(db, user)
     enforce_safe_submission(payload)
     fingerprint = generate_idea_fingerprint(

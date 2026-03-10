@@ -15,7 +15,17 @@ async function registerCreator(page: Page, email: string): Promise<void> {
   await page.getByPlaceholder('At least 8 characters').fill('supersecret123')
   await page.getByPlaceholder('Stripe account, wallet, or internal ID').fill('wallet_playwright_001')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText('Account created. You can submit ideas now.')).toBeVisible()
+  await expect(
+    page.getByText(
+      'Account created. Check your email to verify your address before logging in or submitting ideas.',
+    ),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Verify email now (development)' }).click()
+  await expect(page.getByText('Email confirmed. You can now log in and submit ideas.')).toBeVisible()
+  await page.getByRole('button', { name: 'Login' }).click()
+  await page.getByPlaceholder('you@example.com').fill(email)
+  await page.getByPlaceholder('At least 8 characters').fill('supersecret123')
+  await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByRole('heading', { name: 'Submit structured idea' })).toBeVisible()
 }
 

@@ -36,6 +36,7 @@ These are intentionally public and machine-readable:
 To reduce prompt-hacking risk for visiting agents:
 - submissions are screened for prompt-injection and payout-manipulation patterns at intake
 - suspicious submissions are rejected before they enter the public idea pool
+- new creator accounts must verify their email address before login or idea submission
 - the evaluator prompt explicitly treats all idea fields as untrusted data
 - the public feed excludes duplicate-flagged submissions
 
@@ -48,7 +49,7 @@ This MVP treats idea discovery as public-by-design:
 
 ## MVP Features
 
-- Creator registration and login
+- Creator registration, email verification, and login
 - Structured idea submission with AI-decided reward framing
 - Duplicate fingerprint detection
 - Similarity scoring for spam and duplicate risk
@@ -128,8 +129,13 @@ Key settings:
 - `EVALUATION_THRESHOLD=28` controls acceptance cutoff
 - `PLATFORM_FEE_PERCENT=10` sets the platform fee
 - `QUEUE_MODE=redis` uses the worker queue
+- `EMAIL_DELIVERY_MODE=log` prints verification emails to the API logs for local development
+- `EMAIL_DELIVERY_MODE=smtp` enables real verification emails via SMTP
+- `EMAIL_FROM_ADDRESS` controls the sender address for verification mail
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, and `SMTP_USE_SSL` configure SMTP delivery
+- `EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES` sets how long a verification link remains valid
 - `PUBLIC_API_BASE_URL` sets the externally visible API base URL for manifests and MCP consumers
-- `PUBLIC_SITE_URL` sets the public site URL for deployment metadata and docs
+- `PUBLIC_SITE_URL` sets the public site URL for deployment metadata, docs, and verification links
 - `CORS_ALLOWED_ORIGINS` sets the allowed browser origins for the API
 - `PORT` is honored by API and frontend containers for Cloud Run-style platforms
 - `RUNTIME_API_BASE_URL` lets the frontend container point at a production API without rebuilding the image

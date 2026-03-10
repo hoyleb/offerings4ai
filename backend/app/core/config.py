@@ -31,6 +31,21 @@ class Settings(BaseSettings):
     default_currency: str = Field(default="USD", alias="DEFAULT_CURRENCY")
     max_submissions_per_hour: int = Field(default=5, alias="MAX_SUBMISSIONS_PER_HOUR")
     similarity_threshold: float = Field(default=0.88, alias="SIMILARITY_THRESHOLD")
+    email_delivery_mode: str = Field(default="log", alias="EMAIL_DELIVERY_MODE")
+    email_from_address: str = Field(
+        default="no-reply@offering4ai.local",
+        alias="EMAIL_FROM_ADDRESS",
+    )
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, alias="SMTP_USERNAME")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+    smtp_use_ssl: bool = Field(default=False, alias="SMTP_USE_SSL")
+    email_verify_token_expire_minutes: int = Field(
+        default=60,
+        alias="EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
