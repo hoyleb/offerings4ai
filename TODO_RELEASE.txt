@@ -1,0 +1,6 @@
+- [x] Replace frontend bearer-token storage in `localStorage` with a safer session strategy, ideally secure `HttpOnly` cookies plus CSRF protection, before public launch.
+- [x] Add a real database migration workflow and remove startup-time schema creation / runtime `ALTER TABLE` behavior from the API lifecycle.
+- [x] Add production hardening middleware and edge controls: trusted host enforcement, HTTPS-only behavior, explicit security headers, and API rate limiting beyond per-user submission limits.
+- [x] Fix the Playwright login flow ambiguity so the browser regression suite passes reliably against the live app.
+- [ ] Define and implement the minimum production ops baseline: backups, uptime monitoring, and secret handling outside plain env files on the VM path.
+- [x] Decide whether public exposure of creator email and optional payout destination is acceptable for launch and document that decision as a hard product policy, not only marketing copy.

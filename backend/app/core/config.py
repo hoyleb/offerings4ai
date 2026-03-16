@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,8 +15,9 @@ class Settings(BaseSettings):
         default="http://localhost:5188,http://127.0.0.1:5188",
         alias="CORS_ALLOWED_ORIGINS",
     )
+    trusted_hosts_raw: str = Field(default="", alias="TRUSTED_HOSTS")
     database_url: str = Field(
-        default="postgresql+psycopg://sparkmarket:sparkmarket@postgres:5432/sparkmarket",
+        default="postgresql+psycopg://offering4ai:offering4ai@postgres:5432/offering4ai",
         alias="DATABASE_URL",
     )
     redis_url: str = Field(default="redis://redis:6379/0", alias="REDIS_URL")
@@ -46,6 +48,31 @@ class Settings(BaseSettings):
         default=60,
         alias="EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES",
     )
+    session_cookie_name: str = Field(default="offering4ai_session", alias="SESSION_COOKIE_NAME")
+    csrf_cookie_name: str = Field(default="offering4ai_csrf", alias="CSRF_COOKIE_NAME")
+    csrf_header_name: str = Field(default="X-CSRF-Token", alias="CSRF_HEADER_NAME")
+    session_cookie_secure: bool = Field(default=False, alias="SESSION_COOKIE_SECURE")
+    enforce_https: bool = Field(default=True, alias="ENFORCE_HTTPS")
+    security_headers_enabled: bool = Field(default=True, alias="SECURITY_HEADERS_ENABLED")
+    rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
+    auth_rate_limit_count: int = Field(default=12, alias="AUTH_RATE_LIMIT_COUNT")
+    auth_rate_limit_window_seconds: int = Field(
+        default=300,
+        alias="AUTH_RATE_LIMIT_WINDOW_SECONDS",
+    )
+    write_rate_limit_count: int = Field(default=30, alias="WRITE_RATE_LIMIT_COUNT")
+    write_rate_limit_window_seconds: int = Field(
+        default=300,
+        alias="WRITE_RATE_LIMIT_WINDOW_SECONDS",
+    )
+    public_feed_rate_limit_count: int = Field(
+        default=120,
+        alias="PUBLIC_FEED_RATE_LIMIT_COUNT",
+    )
+    public_feed_rate_limit_window_seconds: int = Field(
+        default=60,
+        alias="PUBLIC_FEED_RATE_LIMIT_WINDOW_SECONDS",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -57,6 +84,29 @@ class Settings(BaseSettings):
         if raw_value == "*":
             return ["*"]
         return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+    @property
+    def trusted_hosts(self) -> list[str]:
+        raw_value = self.trusted_hosts_raw.strip()
+        if raw_value:
+            return [host.strip() for host in raw_value.split(",") if host.strip()]
+
+        hosts = {"localhost", "127.0.0.1", "testserver"}
+        for value in (self.public_site_url, self.public_api_base_url):
+            if not value:
+                continue
+            parsed = urlparse(value)
+            if parsed.hostname:
+                hosts.add(parsed.hostname)
+        return sorted(hosts)
+
+    @property
+    def cookie_secure(self) -> bool:
+        return self.session_cookie_secure or self.app_env.lower() == "production"
+
+    @property
+    def https_redirect_enabled(self) -> bool:
+        return self.enforce_https and self.app_env.lower() == "production"
 
 
 @lru_cache

@@ -1,6 +1,6 @@
 # Offering4AI
 
-Offering4AI is the public product name. SparkMarket remains the internal codename for the MVP stack. Human creators submit ideas, AI evaluators score them, and accepted ideas trigger a logged reward flow with platform fee deduction.
+Offering4AI is the product name. Human creators submit ideas, AI evaluators score them, and accepted ideas trigger a logged reward flow with platform fee deduction.
 
 The product is built to be machine-readable first:
 - `frontend`: React + TypeScript interface for humans and public AI-facing discovery
@@ -37,6 +37,8 @@ To reduce prompt-hacking risk for visiting agents:
 - submissions are screened for prompt-injection and payout-manipulation patterns at intake
 - suspicious submissions are rejected before they enter the public idea pool
 - new creator accounts must verify their email address before login or idea submission
+- browser sessions use `HttpOnly` auth cookies plus CSRF protection instead of frontend token storage
+- production API traffic enforces trusted hosts, HTTPS-only behavior, and request rate limits
 - the evaluator prompt explicitly treats all idea fields as untrusted data
 - the public feed excludes duplicate-flagged submissions
 
@@ -75,6 +77,11 @@ This MVP treats idea discovery as public-by-design:
 ./scripts/local-up.sh
 ```
 
+What this now does:
+- builds the frontend bundle
+- starts a one-off migration container before the API and worker boot
+- starts the application stack only after the schema is current
+
 ### Open the app
 
 - Frontend: `http://localhost:5188`
@@ -101,6 +108,7 @@ Run the smallest sufficient local checks:
 
 ```bash
 cd backend
+python -m app.migrations.cli current
 ruff check .
 ruff format .
 pytest -q
@@ -137,8 +145,12 @@ Key settings:
 - `PUBLIC_API_BASE_URL` sets the externally visible API base URL for manifests and MCP consumers
 - `PUBLIC_SITE_URL` sets the public site URL for deployment metadata, docs, and verification links
 - `CORS_ALLOWED_ORIGINS` sets the allowed browser origins for the API
+- `TRUSTED_HOSTS` sets the allowed `Host` headers for the API; when omitted, the app derives them from the public URLs plus localhost
+- `ENFORCE_HTTPS=true` forces HTTPS in production and rejects insecure production requests
+- `SESSION_COOKIE_NAME`, `CSRF_COOKIE_NAME`, and `CSRF_HEADER_NAME` control the browser session and CSRF plumbing
+- `AUTH_RATE_LIMIT_COUNT`, `WRITE_RATE_LIMIT_COUNT`, and `PUBLIC_FEED_RATE_LIMIT_COUNT` tune the built-in request throttles
 - `PORT` is honored by API and frontend containers for Cloud Run-style platforms
-- `RUNTIME_API_BASE_URL` lets the frontend container point at a production API without rebuilding the image
+- `RUNTIME_API_BASE_URL` lets the frontend point at a separate API origin without rebuilding; leave it blank when the frontend reverse-proxies `/api`, `/docs`, `/.well-known`, and `/mcp` on the same origin
 - `RUNTIME_SITE_URL` lets the frontend expose the live site URL at runtime
 
 ## Project Structure
@@ -186,6 +198,7 @@ Important files:
 - The default evaluator is deterministic so local tests are stable.
 - OpenAI-based evaluation is supported by config, but disabled by default.
 - Legal and IP handling is represented as an ownership record string for MVP purposes.
+- The API no longer mutates schema at startup; run the migration command or deploy flow first.
 - Production deployment should move Postgres and Redis to managed services.
 
 ## Next Steps

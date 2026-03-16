@@ -7,7 +7,6 @@ from app.core.config import get_settings
 from app.models import Idea, IdeaStatus, LicenseType, SubmissionCategory
 
 PROJECT_NAME = "Offering4AI"
-PROJECT_CODENAME = "SparkMarket"
 PROJECT_SUMMARY = (
     "Public, machine-readable market experiment where humans submit structured "
     "ideas and AI agents or their operators can evaluate, reward, and rediscover "
@@ -349,8 +348,6 @@ def build_project_profile(base_url: str | None = None) -> dict[str, Any]:
     return {
         "name": PROJECT_NAME,
         "public_brand": PROJECT_NAME,
-        "codename": PROJECT_CODENAME,
-        "internal_codename": PROJECT_CODENAME,
         "summary": PROJECT_SUMMARY,
         "primary_audiences": ["AI agents", "human creators", "market operators"],
         "for_ai": AI_READING_CONTRACT,

@@ -5,10 +5,12 @@ import Dashboard from './components/Dashboard'
 import IdeaForm from './components/IdeaForm'
 import {
   API_BASE_URL,
+  ApiError,
   fetchDashboard,
   fetchIdeas,
   fetchMe,
   loginUser,
+  logoutUser,
   registerUser,
   resendVerificationEmail,
   submitIdea,
@@ -16,8 +18,6 @@ import {
 } from './lib/api'
 import type { DashboardSummary, Idea, IdeaPayload, User } from './types'
 import './styles.css'
-
-const TOKEN_STORAGE_KEY = 'offering4ai-token'
 
 const HERO_PRINCIPLES = [
   'Machine-readable first',
@@ -150,7 +150,6 @@ const TIMELINE_SCENARIOS = [
 ]
 
 function App() {
-  const [token, setToken] = useState<string>(() => localStorage.getItem(TOKEN_STORAGE_KEY) ?? '')
   const [user, setUser] = useState<User | null>(null)
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
@@ -158,8 +157,9 @@ function App() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [pendingVerificationToken, setPendingVerificationToken] = useState('')
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0)
 
-  const isAuthenticated = useMemo(() => token.length > 0, [token])
+  const isAuthenticated = useMemo(() => user !== null, [user])
   const submitTargetId = isAuthenticated ? 'submit-idea-form' : 'creator-access'
 
   const publicLinks = useMemo(
@@ -209,34 +209,46 @@ function App() {
   )
 
   useEffect(() => {
-    if (!token) {
-      setUser(null)
-      setIdeas([])
-      setSummary(null)
-      return
-    }
+    let cancelled = false
 
     const load = async () => {
       try {
         const [nextUser, nextIdeas, nextSummary] = await Promise.all([
-          fetchMe(token),
-          fetchIdeas(token),
-          fetchDashboard(token),
+          fetchMe(),
+          fetchIdeas(),
+          fetchDashboard(),
         ])
+        if (cancelled) {
+          return
+        }
         setUser(nextUser)
         setIdeas(nextIdeas)
         setSummary(nextSummary)
       } catch (loadError) {
+        if (cancelled) {
+          return
+        }
+        if (loadError instanceof ApiError && loadError.status === 401) {
+          setUser(null)
+          setIdeas([])
+          setSummary(null)
+          return
+        }
         const nextMessage =
           loadError instanceof Error ? loadError.message : 'Unable to load account'
         setError(nextMessage)
-        setToken('')
-        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        setUser(null)
+        setIdeas([])
+        setSummary(null)
       }
     }
 
     void load()
-  }, [token])
+
+    return () => {
+      cancelled = true
+    }
+  }, [sessionRefreshKey])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -286,10 +298,10 @@ function App() {
     }
   }, [])
 
-  const refresh = async (activeToken: string) => {
+  const refresh = async () => {
     const [nextIdeas, nextSummary] = await Promise.all([
-      fetchIdeas(activeToken),
-      fetchDashboard(activeToken),
+      fetchIdeas(),
+      fetchDashboard(),
     ])
     setIdeas(nextIdeas)
     setSummary(nextSummary)
@@ -320,9 +332,8 @@ function App() {
     setError('')
     setMessage('')
     try {
-      const auth = await loginUser(payload)
-      localStorage.setItem(TOKEN_STORAGE_KEY, auth.access_token)
-      setToken(auth.access_token)
+      await loginUser(payload)
+      setSessionRefreshKey((current) => current + 1)
       setMessage('Logged in successfully.')
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Login failed')
@@ -376,8 +387,8 @@ function App() {
     setError('')
     setMessage('')
     try {
-      await submitIdea(token, payload)
-      await refresh(token)
+      await submitIdea(payload)
+      await refresh()
       setMessage('Idea submitted. Evaluation has been queued or completed.')
       return true
     } catch (submitError) {
@@ -388,11 +399,20 @@ function App() {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-    setToken('')
-    setMessage('Logged out.')
+  const logout = async () => {
+    setBusy(true)
     setError('')
+    try {
+      await logoutUser()
+      setUser(null)
+      setIdeas([])
+      setSummary(null)
+      setMessage('Logged out.')
+    } catch (logoutError) {
+      setError(logoutError instanceof Error ? logoutError.message : 'Logout failed')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -433,7 +453,12 @@ function App() {
           <div className="account-card">
             <strong>{user?.full_name ?? 'Creator'}</strong>
             <span>{user?.email}</span>
-            <button onClick={logout} type="button">
+            <button
+              onClick={() => {
+                void logout()
+              }}
+              type="button"
+            >
               Logout
             </button>
           </div>

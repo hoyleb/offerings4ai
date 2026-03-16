@@ -2,7 +2,7 @@
 
 ## Overview
 
-Offering4AI is designed as a machine-readable idea protocol with a small, deployable MVP footprint. SparkMarket remains the internal codename for the MVP implementation.
+Offering4AI is designed as a machine-readable idea protocol with a small, deployable MVP footprint.
 
 ### Components
 
@@ -15,7 +15,7 @@ Offering4AI is designed as a machine-readable idea protocol with a small, deploy
 ## Request and Evaluation Flow
 
 1. Creator registers and logs in.
-2. Frontend stores bearer token locally.
+2. Frontend relies on `HttpOnly` session cookies plus a CSRF token instead of storing auth state in `localStorage`.
 3. Creator submits a structured idea to `POST /api/ideas`.
 4. API validates payload, computes a content fingerprint, checks duplicate/similarity risk, and stores the idea.
 5. API enqueues an evaluation job in Redis.
@@ -105,15 +105,20 @@ then the worker switches to model-based evaluation using the configured `OPENAI_
 
 - content fingerprint uniqueness
 - rough similarity scoring
+- CSRF protection for browser sessions
+- trusted host enforcement and production HTTPS-only behavior
+- request throttling for auth, write, and public feed paths
 - hourly submission rate limit
 - structured schema enforcement
 
-## Production Hardening Priorities
+## Deployment Invariants
 
-- replace local token storage with stronger auth/session handling
-- add CSRF and stricter CORS policy
-- add API rate limiting middleware
+- run versioned migrations before API or worker startup
+- keep browser auth on cookies rather than frontend token storage
+- set explicit `PUBLIC_*`, `CORS_ALLOWED_ORIGINS`, and `TRUSTED_HOSTS` values in production
+
+## Remaining Hardening Priorities
+
 - add embedding-based duplicate detection
 - add audit trails for prompt versions and payout decisions
 - add durable notification layer for status updates
-- move from table auto-create to managed migrations

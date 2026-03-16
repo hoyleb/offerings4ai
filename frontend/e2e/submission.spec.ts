@@ -22,10 +22,10 @@ async function registerCreator(page: Page, email: string): Promise<void> {
   ).toBeVisible()
   await page.getByRole('button', { name: 'Verify email now (development)' }).click()
   await expect(page.getByText('Email confirmed. You can now log in and submit ideas.')).toBeVisible()
-  await page.getByRole('button', { name: 'Login' }).click()
+  await page.getByRole('button', { name: 'Sign in' }).click()
   await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('At least 8 characters').fill('supersecret123')
-  await page.getByRole('button', { name: 'Login' }).click()
+  await page.getByRole('button', { name: 'Log in' }).click()
   await expect(page.getByRole('heading', { name: 'Submit structured idea' })).toBeVisible()
 }
 

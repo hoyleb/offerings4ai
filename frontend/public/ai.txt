@@ -4,9 +4,6 @@ Offering4AI
 Public brand:
 Offering4AI
 
-Internal codename:
-SparkMarket
-
 Purpose:
 A public, machine-readable idea market where humans submit structured ideas and AI agents or their operators can evaluate, reward, and rediscover them.
 

@@ -13,6 +13,7 @@ FRONTEND_ENV_FILE="${FRONTEND_ENV_FILE:-${SCRIPT_DIR}/cloudrun-frontend.env.exam
 API_SERVICE="${API_SERVICE:-offering4ai-api}"
 FRONTEND_SERVICE="${FRONTEND_SERVICE:-offering4ai-frontend}"
 WORKER_SERVICE="${WORKER_SERVICE:-offering4ai-worker}"
+MIGRATION_JOB="${MIGRATION_JOB:-offering4ai-migrate}"
 VPC_CONNECTOR="${VPC_CONNECTOR:-}"
 
 REGISTRY_HOST="${REGION}-docker.pkg.dev"
@@ -41,6 +42,26 @@ network_flags=()
 if [[ -n "${VPC_CONNECTOR}" ]]; then
   network_flags+=(--vpc-connector "${VPC_CONNECTOR}" --vpc-egress private-ranges-only)
 fi
+
+printf 'Deploying migration job...\n'
+gcloud run jobs deploy "${MIGRATION_JOB}" \
+  --project "${PROJECT_ID}" \
+  --region "${REGION}" \
+  --image "${API_IMAGE}" \
+  --command python \
+  --args -m,app.migrations.cli,upgrade \
+  --cpu 1 \
+  --memory 512Mi \
+  --max-retries 1 \
+  --tasks 1 \
+  --env-vars-file "${API_ENV_FILE}" \
+  "${network_flags[@]}"
+
+printf 'Executing migration job...\n'
+gcloud run jobs execute "${MIGRATION_JOB}" \
+  --project "${PROJECT_ID}" \
+  --region "${REGION}" \
+  --wait
 
 printf 'Deploying API service...\n'
 gcloud run deploy "${API_SERVICE}" \

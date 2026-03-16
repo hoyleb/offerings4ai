@@ -7,7 +7,7 @@ from rq import Worker
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db import SessionLocal, create_db_and_tables
+from app.db import SessionLocal, ensure_current_schema
 from app.models import Evaluation, Idea, IdeaStatus, Payout
 from app.services.evaluator import build_evaluator
 from app.services.payments import PaymentProcessor
@@ -71,7 +71,7 @@ def _evaluate_idea(db: Session, idea_id: UUID) -> None:
 
 
 def run_worker() -> None:
-    create_db_and_tables()
+    ensure_current_schema()
     settings = get_settings()
     connection = Redis.from_url(settings.redis_url)
     worker = Worker(["idea-evaluations"], connection=connection)
