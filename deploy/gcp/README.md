@@ -8,6 +8,7 @@ Use `deploy-vm.sh`.
 
 That path creates a single `e2-micro` Ubuntu VM, pushes your images to Artifact Registry, and runs the whole stack with Docker Compose:
 - `caddy`
+- `migrate`
 - `frontend`
 - `api`
 - `worker`
@@ -29,6 +30,7 @@ Tradeoff:
 Use `deploy-cloud-run.sh`.
 
 That path is cleaner operationally, but not the cheapest because it expects:
+- a one-off Cloud Run migration job
 - Cloud Run for frontend, API, worker
 - Cloud SQL for PostgreSQL
 - Memorystore for Redis

@@ -103,7 +103,7 @@ function AuthPanel({
             onClick={() => setMode('login')}
             type="button"
           >
-            Login
+            Sign in
           </button>
         </div>
       </div>
@@ -190,7 +190,7 @@ function AuthPanel({
           </label>
         ) : null}
         <button className="primary-button" disabled={busy} type="submit">
-          {busy ? 'Working...' : mode === 'register' ? 'Create account' : 'Login'}
+          {busy ? 'Working...' : mode === 'register' ? 'Create account' : 'Log in'}
         </button>
         {mode === 'login' ? (
           <button

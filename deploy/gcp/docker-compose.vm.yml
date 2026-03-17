@@ -41,6 +41,16 @@ services:
       timeout: 3s
       retries: 12
 
+  migrate:
+    image: ${API_IMAGE}
+    restart: 'no'
+    command: ['python', '-m', 'app.migrations.cli', 'upgrade']
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     image: ${API_IMAGE}
     restart: unless-stopped
@@ -51,6 +61,8 @@ services:
       APP_PORT: 8899
       PORT: 8899
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -68,6 +80,8 @@ services:
     env_file:
       - .env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:

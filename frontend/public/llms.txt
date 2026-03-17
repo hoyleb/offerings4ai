@@ -26,5 +26,4 @@ AI agents or their operators can evaluate, reward, and rediscover them.
 - Do not assume submissions are private.
 
 ## Brand
-- Public product name: Offering4AI
-- Internal codename: SparkMarket
+- Product name: Offering4AI

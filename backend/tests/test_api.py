@@ -8,15 +8,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{Path('/tmp/sparkmarket_test.sqlite3')}"
+os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{Path('/tmp/offering4ai_test.sqlite3')}"
 os.environ["QUEUE_MODE"] = "inline"
 os.environ["REDIS_URL"] = "redis://localhost:6379/9"
 os.environ["APP_ENV"] = "development"
 os.environ["EMAIL_DELIVERY_MODE"] = "log"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
-from app.db import Base  # noqa: E402
 from app.dependencies import get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.migrations.runner import apply_pending_migrations, reset_sqlite_schema  # noqa: E402
 
 engine = create_engine(os.environ["DATABASE_URL"], future=True)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
@@ -32,16 +33,25 @@ def override_get_db():
 
 @pytest.fixture(autouse=True)
 def setup_db():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    reset_sqlite_schema(engine)
+    apply_pending_migrations(engine)
     app.dependency_overrides[get_db] = override_get_db
     yield
     app.dependency_overrides.clear()
 
 
+def csrf_headers(client: TestClient) -> dict[str, str]:
+    response = client.get("/api/auth/csrf")
+    assert response.status_code == 200
+    token = response.json()["csrf_token"]
+    return {"X-CSRF-Token": token}
+
+
 def register_and_login(client: TestClient, email: str = "user@example.com") -> dict[str, str]:
+    headers = csrf_headers(client)
     register = client.post(
         "/api/auth/register",
+        headers=headers,
         json={
             "email": email,
             "password": "supersecret123",
@@ -55,17 +65,19 @@ def register_and_login(client: TestClient, email: str = "user@example.com") -> d
 
     verify = client.post(
         "/api/auth/verify-email",
+        headers=headers,
         json={"token": debug_token},
     )
     assert verify.status_code == 200
 
     login = client.post(
         "/api/auth/login",
+        headers=headers,
         json={"email": email, "password": "supersecret123"},
     )
     assert login.status_code == 200
     token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}", **headers}
 
 
 def test_full_submission_flow():
@@ -255,9 +267,11 @@ def test_prompt_injection_submission_rejected():
 
 def test_login_requires_verified_email():
     client = TestClient(app)
+    headers = csrf_headers(client)
 
     register = client.post(
         "/api/auth/register",
+        headers=headers,
         json={
             "email": "pending@example.com",
             "password": "supersecret123",
@@ -270,6 +284,7 @@ def test_login_requires_verified_email():
 
     login = client.post(
         "/api/auth/login",
+        headers=headers,
         json={"email": "pending@example.com", "password": "supersecret123"},
     )
     assert login.status_code == 403
@@ -278,9 +293,11 @@ def test_login_requires_verified_email():
 
 def test_resend_verification_returns_new_debug_token():
     client = TestClient(app)
+    headers = csrf_headers(client)
 
     register = client.post(
         "/api/auth/register",
+        headers=headers,
         json={
             "email": "resend@example.com",
             "password": "supersecret123",
@@ -293,6 +310,7 @@ def test_resend_verification_returns_new_debug_token():
 
     resend = client.post(
         "/api/auth/resend-verification",
+        headers=headers,
         json={"email": "resend@example.com"},
     )
     assert resend.status_code == 200
@@ -300,8 +318,81 @@ def test_resend_verification_returns_new_debug_token():
     assert replacement_token
     assert replacement_token != original_token
 
-    stale_verify = client.post("/api/auth/verify-email", json={"token": original_token})
+    stale_verify = client.post(
+        "/api/auth/verify-email",
+        headers=headers,
+        json={"token": original_token},
+    )
     assert stale_verify.status_code == 400
 
-    fresh_verify = client.post("/api/auth/verify-email", json={"token": replacement_token})
+    fresh_verify = client.post(
+        "/api/auth/verify-email",
+        headers=headers,
+        json={"token": replacement_token},
+    )
     assert fresh_verify.status_code == 200
+
+
+def test_cookie_session_supports_browser_requests_and_logout():
+    client = TestClient(app)
+    headers = csrf_headers(client)
+
+    register = client.post(
+        "/api/auth/register",
+        headers=headers,
+        json={
+            "email": "cookie@example.com",
+            "password": "supersecret123",
+            "full_name": "Cookie User",
+            "payout_address": "acct_demo_001",
+        },
+    )
+    assert register.status_code == 201
+    debug_token = register.json()["debug_verify_token"]
+    verify = client.post(
+        "/api/auth/verify-email",
+        headers=headers,
+        json={"token": debug_token},
+    )
+    assert verify.status_code == 200
+
+    login = client.post(
+        "/api/auth/login",
+        headers=headers,
+        json={"email": "cookie@example.com", "password": "supersecret123"},
+    )
+    assert login.status_code == 200
+    assert "set-cookie" in login.headers
+
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "cookie@example.com"
+
+    submit = client.post(
+        "/api/ideas",
+        headers=headers,
+        json={
+            "title": "Cookie session idea anchor",
+            "category": "product",
+            "problem": (
+                "Browser sessions need CSRF protection with cookie auth in "
+                "production."
+            ),
+            "proposed_idea": (
+                "Use HttpOnly session cookies and separate CSRF cookies for "
+                "form and API requests."
+            ),
+            "why_ai_benefits": (
+                "This hardens browser auth without removing API compatibility "
+                "for non-browser clients."
+            ),
+            "expected_reward_range": "$20-$40",
+            "license_type": "non_exclusive",
+        },
+    )
+    assert submit.status_code == 201
+
+    logout = client.post("/api/auth/logout", headers=headers)
+    assert logout.status_code == 204
+    me_after_logout = client.get("/api/auth/me")
+    assert me_after_logout.status_code == 401

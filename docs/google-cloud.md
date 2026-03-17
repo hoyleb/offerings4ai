@@ -31,6 +31,7 @@ Use Cloud Run only when you want the cleaner managed split and are comfortable p
 - creates a small Ubuntu VM if it does not exist
 - attaches a service account with Artifact Registry read access
 - uploads a production Docker Compose bundle
+- runs the explicit migration container before API and worker startup
 - installs Docker on the VM
 - pulls the images and starts the stack
 
@@ -84,6 +85,7 @@ Cloud Run itself can stay inexpensive at low traffic, but Cloud SQL and Memoryst
 
 - enables Cloud Run and Artifact Registry APIs
 - optionally builds and pushes fresh images
+- deploys and executes a one-off Cloud Run migration job
 - deploys `offering4ai-api`
 - deploys `offering4ai-frontend`
 - deploys `offering4ai-worker`
@@ -118,7 +120,7 @@ The frontend container now serves a locally built static bundle and reads runtim
 That keeps the runtime image small and stable while letting the same image run across local Docker, VM, and Cloud Run.
 
 Runtime variables:
-- `RUNTIME_API_BASE_URL`
+- `RUNTIME_API_BASE_URL` (leave blank when the frontend and API share one public origin through Caddy or another reverse proxy)
 - `RUNTIME_SITE_URL`
 - `PORT`
 
@@ -128,6 +130,10 @@ The API now supports:
 - `PUBLIC_API_BASE_URL`
 - `PUBLIC_SITE_URL`
 - `CORS_ALLOWED_ORIGINS`
+- `TRUSTED_HOSTS`
+- `SESSION_COOKIE_NAME`
+- `CSRF_COOKIE_NAME`
+- `CSRF_HEADER_NAME`
 
 ## Domain recommendation
 

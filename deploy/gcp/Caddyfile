@@ -1,5 +1,11 @@
 {$SITE_ADDRESS} {
   encode gzip zstd
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "same-origin"
+    Permissions-Policy "camera=(), geolocation=(), microphone=()"
+  }
 
   @api path /api/* /docs /docs/* /openapi.json /redoc /.well-known/* /mcp /mcp/* /health /healthz
   handle @api {

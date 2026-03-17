@@ -49,7 +49,7 @@ Before moving to managed services, complete these items:
 - add VM snapshot policy
 - add uptime checks for `/health` and the homepage
 - add central log export or at least log retention strategy
-- replace startup `create_all()` schema management with versioned migrations
+- keep the explicit versioned migration flow wired into deployment automation
 
 Success criteria:
 - restarts are predictable
@@ -173,7 +173,7 @@ Tradeoffs:
 - When should public feed rate limiting be tightened?
 
 ### Data
-- When should Alembic or another migration tool replace startup schema creation?
+- When should Alembic or another migration framework replace the current lightweight in-repo migration runner?
 - Do we need audit tables before real payouts exist?
 - How long should public idea history remain immutable?
 

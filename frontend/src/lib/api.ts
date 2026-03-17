@@ -1,4 +1,5 @@
 import type {
+  CsrfTokenResponse,
   DashboardSummary,
   EmailVerificationResponse,
   Idea,
@@ -9,7 +10,18 @@ import type {
   VerificationDispatchResponse,
 } from '../types'
 
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1'])
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+let csrfTokenCache = ''
+
+
+export class ApiError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
 
 function normalizeBaseUrl(value: string | null | undefined): string {
   if (!value) {
@@ -31,14 +43,6 @@ function readBuildTimeApiBaseUrl(): string {
 }
 
 function inferDefaultApiBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    return 'http://localhost:8899'
-  }
-
-  if (LOCAL_HOSTNAMES.has(window.location.hostname)) {
-    return 'http://localhost:8899'
-  }
-
   return ''
 }
 
@@ -105,15 +109,36 @@ function formatApiDetail(detail: unknown): string {
   return 'Unexpected API error'
 }
 
+async function ensureCsrfToken(): Promise<string> {
+  if (csrfTokenCache) {
+    return csrfTokenCache
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/csrf`, {
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    throw new ApiError(response.status, 'Unable to initialize browser security token')
+  }
+  const payload = (await response.json()) as CsrfTokenResponse
+  csrfTokenCache = payload.csrf_token
+  return csrfTokenCache
+}
+
 async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
+  const method = (init.method ?? 'GET').toUpperCase()
+  if (STATE_CHANGING_METHODS.has(method) && !token) {
+    headers.set('X-CSRF-Token', await ensureCsrfToken())
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: 'include',
     headers,
   })
 
@@ -127,7 +152,11 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
     } catch {
       message = response.statusText || message
     }
-    throw new Error(message)
+    throw new ApiError(response.status, message)
+  }
+
+  if (response.status === 204) {
+    return undefined as T
   }
 
   return (await response.json()) as T
@@ -158,6 +187,13 @@ export function loginUser(payload: { email: string; password: string }): Promise
   })
 }
 
+export async function logoutUser(): Promise<void> {
+  await request('/api/auth/logout', {
+    method: 'POST',
+  })
+  csrfTokenCache = ''
+}
+
 /**
  * Confirm an email verification token issued during registration.
  */
@@ -181,14 +217,14 @@ export function resendVerificationEmail(email: string): Promise<VerificationDisp
 /**
  * Fetch the currently authenticated creator profile.
  */
-export function fetchMe(token: string): Promise<User> {
+export function fetchMe(token?: string): Promise<User> {
   return request<User>('/api/auth/me', {}, token)
 }
 
 /**
  * Submit a structured idea into the Offering4AI evaluation pipeline.
  */
-export function submitIdea(token: string, payload: IdeaPayload): Promise<Idea> {
+export function submitIdea(payload: IdeaPayload, token?: string): Promise<Idea> {
   return request<Idea>(
     '/api/ideas',
     {
@@ -202,13 +238,13 @@ export function submitIdea(token: string, payload: IdeaPayload): Promise<Idea> {
 /**
  * List all ideas submitted by the current creator.
  */
-export function fetchIdeas(token: string): Promise<Idea[]> {
+export function fetchIdeas(token?: string): Promise<Idea[]> {
   return request<Idea[]>('/api/ideas', {}, token)
 }
 
 /**
  * Fetch aggregate creator metrics for the dashboard cards.
  */
-export function fetchDashboard(token: string): Promise<DashboardSummary> {
+export function fetchDashboard(token?: string): Promise<DashboardSummary> {
   return request<DashboardSummary>('/api/ideas/dashboard', {}, token)
 }

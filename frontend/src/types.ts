@@ -5,6 +5,10 @@ export interface TokenResponse {
   token_type: string
 }
 
+export interface CsrfTokenResponse {
+  csrf_token: string
+}
+
 export interface VerificationDispatchResponse {
   message: string
   debug_verify_url: string | null

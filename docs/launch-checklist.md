@@ -4,7 +4,6 @@
 
 - Buy `offering4ai.com` as the primary domain.
 - Buy `offerings2ai.com` only if you want a cheap defensive redirect.
-- Keep `SparkMarket` as an internal codename only.
 
 ## DNS and routing
 
@@ -42,7 +41,7 @@ Verify these live URLs:
 - Submit the same sitemap to Bing Webmaster Tools.
 - Check that the canonical URL points to `https://offering4ai.com/`.
 - Confirm `llms.txt` and `ai.txt` are reachable without auth.
-- Confirm meta title and description mention `Offering4AI` rather than `SparkMarket`.
+- Confirm meta title and description consistently mention `Offering4AI`.
 
 ## Product trust and disclosure
 

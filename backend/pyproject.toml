@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sparkmarket-api"
+name = "offering4ai-api"
 version = "0.1.0"
-description = "SparkMarket backend API, evaluation worker, and payout simulator"
+description = "Offering4AI backend API, evaluation worker, and payout simulator"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.116,<1.0",

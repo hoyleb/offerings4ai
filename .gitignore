@@ -10,6 +10,7 @@ coverage/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 *.sqlite3
 .env
 backend/.venv/

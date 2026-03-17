@@ -3,18 +3,20 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.routes import auth, health, ideas, public
 from app.core.config import get_settings
-from app.db import create_db_and_tables
+from app.db import ensure_current_schema
 from app.mcp_server import mcp_server
+from app.middleware import CsrfProtectionMiddleware, RuntimeHardeningMiddleware
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    create_db_and_tables()
+    ensure_current_schema()
     yield
 
 
@@ -28,9 +30,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(RuntimeHardeningMiddleware)
+app.add_middleware(CsrfProtectionMiddleware)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_allowed_origins or ["*"],
+    allow_origins=settings.cors_allowed_origins,
     allow_credentials="*" not in settings.cors_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
