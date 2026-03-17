@@ -19,6 +19,7 @@ POSTGRES_USER="${POSTGRES_USER:-offering4ai}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(openssl rand -hex 16)}"
 JWT_SECRET="${JWT_SECRET:-$(openssl rand -hex 32)}"
 APP_DIR="${APP_DIR:-/opt/offering4ai}"
+SSH_KEY_FILE="${SSH_KEY_FILE:-}"
 
 REGISTRY_HOST="${REGION}-docker.pkg.dev"
 API_IMAGE="${REGISTRY_HOST}/${PROJECT_ID}/${REPOSITORY}/offering4ai-api:${TAG}"
@@ -142,11 +143,13 @@ printf 'Uploading deployment bundle to VM...\n'
 gcloud compute ssh "${INSTANCE_NAME}" \
   --project "${PROJECT_ID}" \
   --zone "${ZONE}" \
+  ${SSH_KEY_FILE:+--ssh-key-file "${SSH_KEY_FILE}"} \
   --command 'mkdir -p /tmp/offering4ai-deploy' >/dev/null
 
 gcloud compute scp \
   --project "${PROJECT_ID}" \
   --zone "${ZONE}" \
+  ${SSH_KEY_FILE:+--ssh-key-file "${SSH_KEY_FILE}"} \
   "${DEPLOY_TMP_DIR}/.env" \
   "${DEPLOY_TMP_DIR}/docker-compose.yml" \
   "${DEPLOY_TMP_DIR}/Caddyfile" \
@@ -157,6 +160,7 @@ printf 'Bootstrapping VM services...\n'
 gcloud compute ssh "${INSTANCE_NAME}" \
   --project "${PROJECT_ID}" \
   --zone "${ZONE}" \
+  ${SSH_KEY_FILE:+--ssh-key-file "${SSH_KEY_FILE}"} \
   --command "sudo REGISTRY_HOST='${REGISTRY_HOST}' APP_DIR='${APP_DIR}' DEPLOY_DIR='/tmp/offering4ai-deploy' bash /tmp/offering4ai-deploy/bootstrap-vm.sh"
 
 cat <<EOT
