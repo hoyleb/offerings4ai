@@ -46,6 +46,29 @@ SITE_ADDRESS=:80 \
 
 That gives you a live HTTP deployment on the VM public IP.
 
+### Tested build and redeploy notes
+
+The VM path now builds and pushes `linux/amd64` images by default so the images match the Compute Engine host architecture.
+
+If you want to publish images separately first, run:
+
+```bash
+PROJECT_ID=your-project-id \
+REGION=europe-west1 \
+TARGET_PLATFORM=linux/amd64 \
+./deploy/gcp/build-and-push.sh
+```
+
+If the VM already exists and you only want to roll out the latest pushed images, rerun the VM deploy with:
+
+```bash
+PROJECT_ID=your-project-id \
+ZONE=europe-west1-b \
+SITE_ADDRESS=:80 \
+SKIP_BUILD=1 \
+./deploy/gcp/deploy-vm.sh
+```
+
 ### When your domain is ready
 
 After `offering4ai.com` points to the VM public IP, rerun:
@@ -64,6 +87,52 @@ Caddy will then request and maintain HTTPS certificates automatically.
 
 - start with `e2-micro` if traffic is light and budget is the priority
 - move to `e2-small` if you see memory pressure from Postgres + Redis + browser traffic
+
+### One-time `gcloud` setup on this Mac
+
+The tested local setup used:
+
+```bash
+export CLOUDSDK_PYTHON=/opt/anaconda3/bin/python
+gcloud config set project book-creation-genai
+```
+
+If `gcloud` fails TLS verification on a corporate or filtered network, point it at a working CA bundle:
+
+```bash
+gcloud config set core/custom_ca_certs_file /path/to/ca-bundle.pem
+```
+
+If your local `gcloud` environment cannot write the default SSH key files cleanly, `deploy-vm.sh` also supports:
+
+```bash
+SSH_KEY_FILE=/path/to/google_compute_engine
+```
+
+### Start and stop the current VM
+
+The current tested VM is:
+- project: `book-creation-genai`
+- instance: `offering4ai-vm`
+- zone: `europe-west1-b`
+
+Start it:
+
+```bash
+gcloud compute instances start offering4ai-vm --project book-creation-genai --zone europe-west1-b
+```
+
+Verify it:
+
+```bash
+curl -I http://35.241.237.114
+```
+
+Stop it when you want the app offline overnight:
+
+```bash
+gcloud compute instances stop offering4ai-vm --project book-creation-genai --zone europe-west1-b
+```
 
 ## Option B — Managed path: Cloud Run
 

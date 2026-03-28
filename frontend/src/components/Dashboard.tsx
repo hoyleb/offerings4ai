@@ -18,7 +18,7 @@ function Dashboard({ ideas, summary }: DashboardProps) {
     <section className="panel">
       <div className="section-heading">
         <h2>Creator dashboard</h2>
-        <p>Track submission outcomes, rewards, and evaluation rationale.</p>
+        <p>Track publication status, evaluation outcomes, and any downstream payouts that happen to occur.</p>
       </div>
       <div className="metrics-grid">
         <article>
@@ -34,12 +34,12 @@ function Dashboard({ ideas, summary }: DashboardProps) {
           <strong>{summary?.paid_count ?? 0}</strong>
         </article>
         <article>
-          <span>Net rewards</span>
-          <strong>{formatMoney(summary?.total_net_rewards ?? 0)}</strong>
+          <span>Average score</span>
+          <strong>{summary?.average_score?.toFixed(1) ?? '0.0'}</strong>
         </article>
       </div>
       <div className="idea-list">
-        {ideas.length === 0 ? <p className="empty-state">No ideas yet. Submit the first spark.</p> : null}
+        {ideas.length === 0 ? <p className="empty-state">No ideas yet. Publish the first signal.</p> : null}
         {ideas.map((idea) => (
           <article className="idea-card" key={idea.id}>
             <div className="idea-card-header">
@@ -52,10 +52,10 @@ function Dashboard({ ideas, summary }: DashboardProps) {
             <p>{idea.feedback ?? 'Awaiting evaluator feedback.'}</p>
             <div className="idea-meta-grid">
               <span>Score: {idea.score_total ?? '—'}</span>
-              <span>License: {idea.license_type}</span>
+              <span>Reuse: {idea.license_type}</span>
               <span>Duplicate risk: {idea.similarity_score ?? 0}</span>
               <span>
-                Reward: {idea.payout ? formatMoney(idea.payout.net_amount) : 'Not paid'}
+                Payout: {idea.payout ? formatMoney(idea.payout.net_amount) : 'None observed'}
               </span>
             </div>
           </article>

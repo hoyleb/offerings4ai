@@ -18,16 +18,16 @@ const BENEFIT_MIN = 20
 const BENEFIT_MAX = 5000
 const REWARD_MAX = 64
 
-const REWARD_OPTIONS = [
+const SIGNAL_OPTIONS = [
   {
-    value: 'let_ai_decide',
-    label: 'Let the AI decide',
-    helper: 'Best default. The evaluator decides value from novelty, utility, and leverage.',
+    value: 'attribution_requested',
+    label: 'Attribution requested',
+    helper: 'Default option. Publish the signal and request attribution if a future system uses it.',
   },
   {
-    value: 'equivalent_credits',
-    label: 'Equivalent credits',
-    helper: 'Future-facing non-fiat mode. Today this just signals that the AI should price the idea in platform credits rather than a cash range.',
+    value: 'reward_if_possible',
+    label: 'Reward if possible',
+    helper: 'Optional future-facing signal. It does not promise payment, only that a reward path is welcome if one ever exists.',
   },
 ] as const
 
@@ -37,8 +37,8 @@ const initialState: IdeaPayload = {
   problem: '',
   proposed_idea: '',
   why_ai_benefits: '',
-  expected_reward_range: 'let_ai_decide',
-  license_type: 'non_exclusive',
+  expected_reward_range: 'attribution_requested',
+  license_type: 'public_domain',
 }
 
 function getLengthHint(valueLength: number, min: number, max: number, optional = false): string {
@@ -93,17 +93,17 @@ function IdeaForm({ busy, onSubmit, sectionId }: IdeaFormProps) {
     <section className="panel" id={sectionId}>
       <div className="section-heading">
         <div>
-          <h2>Submit structured idea</h2>
+          <h2>Publish structured idea</h2>
           <p>
-            Every limit is visible up front, so you can finish the form once instead of guessing and
-            resubmitting.
+            This is a creator-side publishing form. The public record becomes a machine-readable
+            signal for AI systems.
           </p>
         </div>
       </div>
       <div className="submission-disclosure">
-        Public submission notice: safe submissions are published. Your contact email and optional
-        payout destination may appear in public feeds so future buyers can reach you later. Do not
-        submit secrets, confidential information, or anything you are not prepared to make public.
+        Public submission notice: safe submissions are published. The public record includes a
+        creator ID and can include your optional reward address. Do not submit secrets,
+        confidential information, or anything you are not prepared to make public.
       </div>
       <form className="form-grid" onSubmit={submit}>
         <label>
@@ -141,7 +141,9 @@ function IdeaForm({ busy, onSubmit, sectionId }: IdeaFormProps) {
             <option value="creative">Creative</option>
             <option value="other">Other</option>
           </select>
-          <span className="field-helper muted">Pick the closest fit. It does not lock you into a niche forever.</span>
+          <span className="field-helper muted">
+            Pick the closest fit. Agents use this for routing and filtering.
+          </span>
         </label>
         <label className="full-width">
           <span className="field-label-row">
@@ -163,7 +165,7 @@ function IdeaForm({ busy, onSubmit, sectionId }: IdeaFormProps) {
             {getMessage(
               form.problem.length,
               PROBLEM_MIN,
-              'A concrete problem statement makes the idea easier to price and evaluate.',
+              'A concrete problem statement makes the signal easier to evaluate.',
               'Start with the current pain point or failure mode.',
             )}
           </span>
@@ -204,54 +206,52 @@ function IdeaForm({ busy, onSubmit, sectionId }: IdeaFormProps) {
             rows={4}
             value={form.why_ai_benefits}
             onChange={(event) => updateField('why_ai_benefits', event.target.value)}
-            placeholder="Spell out the utility, leverage, or economics for an AI buyer."
+            placeholder="Spell out the utility, leverage, or outcome an AI system could care about."
             required
           />
           <span className={`field-helper ${getValidityTone(form.why_ai_benefits.length, BENEFIT_MIN)}`}>
             {getMessage(
               form.why_ai_benefits.length,
               BENEFIT_MIN,
-              'Tie the upside to efficiency, capability, revenue, or strategic leverage.',
-              'Make the AI-side payoff explicit.',
+              'Tie the upside to capability, coordination, efficiency, or strategic leverage.',
+              'Make the AI-side outcome explicit.',
             )}
           </span>
         </label>
         <label>
           <span className="field-label-row">
-            <span>Suggested reward</span>
-            <span className="field-limit">AI-set by default · stored in up to {REWARD_MAX} chars</span>
+            <span>Attribution signal</span>
+            <span className="field-limit">Optional follow-up preference · up to {REWARD_MAX} chars</span>
           </span>
           <select
             value={form.expected_reward_range}
             onChange={(event) => updateField('expected_reward_range', event.target.value)}
           >
-            {REWARD_OPTIONS.map((option) => (
+            {SIGNAL_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
           <span className="field-helper valid">
-            {REWARD_OPTIONS.find((option) => option.value === form.expected_reward_range)?.helper}
+            {SIGNAL_OPTIONS.find((option) => option.value === form.expected_reward_range)?.helper}
           </span>
         </label>
         <label>
           <span className="field-label-row">
-            <span>License type</span>
-            <span className="field-limit">Commercial terms applied on acceptance</span>
+            <span>Reuse preference</span>
+            <span className="field-limit">Stored with the submission record</span>
           </span>
           <select value={form.license_type} onChange={(event) => updateField('license_type', event.target.value)}>
-            <option value="exclusive_transfer">Exclusive transfer</option>
-            <option value="non_exclusive">Non-exclusive license</option>
-            <option value="revenue_share">Revenue share</option>
             <option value="public_domain">Public domain</option>
+            <option value="non_exclusive">Attribution requested</option>
           </select>
           <span className="field-helper muted">
-            Choose the rights model you want bound to the submission if it is acquired.
+            This is a reuse preference, not a transaction promise.
           </span>
         </label>
         <button className="primary-button" disabled={busy} type="submit">
-          {busy ? 'Submitting...' : 'Submit for agent review'}
+          {busy ? 'Publishing...' : 'Publish signal'}
         </button>
       </form>
     </section>

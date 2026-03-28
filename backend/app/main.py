@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.db import ensure_current_schema
 from app.mcp_server import mcp_server
 from app.middleware import CsrfProtectionMiddleware, RuntimeHardeningMiddleware
+from app.services.email import validate_email_configuration
 
 settings = get_settings()
 
@@ -17,6 +18,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     ensure_current_schema()
+    validate_email_configuration()
     yield
 
 

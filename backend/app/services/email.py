@@ -11,6 +11,37 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+def validate_email_configuration() -> None:
+    """Purpose: Fail fast on invalid email delivery settings.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+
+    Raises:
+        RuntimeError: When production is configured without real email delivery or when
+            SMTP mode is selected without the required SMTP host.
+    """
+
+    settings = get_settings()
+    mode = settings.email_delivery_mode.lower().strip()
+    app_env = settings.app_env.lower().strip()
+
+    if mode not in {"log", "smtp"}:
+        raise RuntimeError("EMAIL_DELIVERY_MODE must be 'log' or 'smtp' before the API can start.")
+
+    if app_env == "production" and settings.registration_enabled and mode != "smtp":
+        raise RuntimeError(
+            "Production signup requires EMAIL_DELIVERY_MODE=smtp so verification emails are "
+            "actually delivered."
+        )
+
+    if mode == "smtp" and not settings.smtp_host:
+        raise RuntimeError("SMTP_HOST must be configured when EMAIL_DELIVERY_MODE=smtp.")
+
+
 def send_email(recipient: str, subject: str, text_body: str) -> None:
     """Purpose: Deliver an outbound transactional email.
 
@@ -31,8 +62,16 @@ def send_email(recipient: str, subject: str, text_body: str) -> None:
     mode = settings.email_delivery_mode.lower().strip()
 
     if mode == "log":
+        if settings.app_env.lower().strip() == "production":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Email delivery is not configured. Set EMAIL_DELIVERY_MODE=smtp and "
+                    "configure SMTP before allowing signup or password reset emails."
+                ),
+            )
         logger.info(
-            "Verification email queued in log mode",
+            "Transactional email queued in log mode",
             extra={"recipient": recipient, "subject": subject, "body": text_body},
         )
         return
@@ -49,7 +88,7 @@ def send_email(recipient: str, subject: str, text_body: str) -> None:
     if not settings.smtp_host:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="SMTP_HOST must be configured before verification emails can be sent",
+            detail="SMTP_HOST must be configured before transactional emails can be sent",
         )
 
     message = EmailMessage()
@@ -74,7 +113,7 @@ def send_email(recipient: str, subject: str, text_body: str) -> None:
         logger.exception("SMTP delivery failed")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to send verification email right now",
+            detail="Unable to send email right now",
         ) from exc
 
 

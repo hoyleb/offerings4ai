@@ -48,6 +48,11 @@ class Settings(BaseSettings):
         default=60,
         alias="EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES",
     )
+    password_reset_token_expire_minutes: int = Field(
+        default=60,
+        alias="PASSWORD_RESET_TOKEN_EXPIRE_MINUTES",
+    )
+    registration_enabled: bool = Field(default=True, alias="REGISTRATION_ENABLED")
     session_cookie_name: str = Field(default="offering4ai_session", alias="SESSION_COOKIE_NAME")
     csrf_cookie_name: str = Field(default="offering4ai_csrf", alias="CSRF_COOKIE_NAME")
     csrf_header_name: str = Field(default="X-CSRF-Token", alias="CSRF_HEADER_NAME")

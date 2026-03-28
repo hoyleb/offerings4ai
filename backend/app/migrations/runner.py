@@ -50,6 +50,22 @@ def _upgrade_email_verification_columns(connection: Connection) -> None:
         )
 
 
+def _upgrade_password_reset_columns(connection: Connection) -> None:
+    inspector = inspect(connection)
+    if "users" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "password_reset_token_hash" not in existing_columns:
+        connection.execute(
+            text("ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(64)")
+        )
+    if "password_reset_sent_at" not in existing_columns:
+        connection.execute(text("ALTER TABLE users ADD COLUMN password_reset_sent_at TIMESTAMP"))
+    if "password_reset_expires_at" not in existing_columns:
+        connection.execute(text("ALTER TABLE users ADD COLUMN password_reset_expires_at TIMESTAMP"))
+
+
 MIGRATIONS = (
     Migration(
         revision="20260308_0001_initial_schema",
@@ -60,6 +76,11 @@ MIGRATIONS = (
         revision="20260310_0002_email_verification_columns",
         description="Backfill email verification fields onto existing user records.",
         upgrade=_upgrade_email_verification_columns,
+    ),
+    Migration(
+        revision="20260328_0003_password_reset_columns",
+        description="Add password reset fields onto existing user records.",
+        upgrade=_upgrade_password_reset_columns,
     ),
 )
 

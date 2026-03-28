@@ -14,6 +14,9 @@ from app.core.security import create_access_token, get_password_hash, verify_pas
 from app.models import User
 from app.schemas import (
     EmailVerificationResponse,
+    PasswordResetConfirm,
+    PasswordResetDispatchResponse,
+    PasswordResetRequest,
     RegistrationResponse,
     ResendVerificationRequest,
     UserCreate,
@@ -23,6 +26,16 @@ from app.services.email import send_email
 
 
 def register_user(db: Session, payload: UserCreate) -> RegistrationResponse:
+    settings = get_settings()
+    if not settings.registration_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Registration is temporarily disabled until outbound verification email "
+                "delivery is configured."
+            ),
+        )
+
     existing_user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing_user:
         if existing_user.email_verified_at is None:
@@ -51,10 +64,7 @@ def register_user(db: Session, payload: UserCreate) -> RegistrationResponse:
 
     return RegistrationResponse(
         user=user,
-        message=(
-            "Account created. Check your email to verify your address before logging in or "
-            "submitting ideas."
-        ),
+        message=_registration_message(),
         debug_verify_url=dispatch.debug_verify_url,
         debug_verify_token=dispatch.debug_verify_token,
     )
@@ -102,6 +112,16 @@ def resend_verification_email(
     db: Session,
     payload: ResendVerificationRequest,
 ) -> VerificationDispatchResponse:
+    settings = get_settings()
+    if not settings.registration_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Verification email resend is temporarily disabled until outbound email "
+                "delivery is configured."
+            ),
+        )
+
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is None or user.email_verified_at is not None:
         return VerificationDispatchResponse(
@@ -115,12 +135,53 @@ def resend_verification_email(
     db.refresh(user)
 
     return VerificationDispatchResponse(
-        message=(
-            "If that address is pending verification, a fresh confirmation email is on its way."
-        ),
+        message=_resend_message(),
         debug_verify_url=dispatch.debug_verify_url,
         debug_verify_token=dispatch.debug_verify_token,
     )
+
+
+def request_password_reset(
+    db: Session,
+    payload: PasswordResetRequest,
+) -> PasswordResetDispatchResponse:
+    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+    if user is None or user.email_verified_at is None:
+        return PasswordResetDispatchResponse(message=_password_reset_request_message())
+
+    dispatch = _issue_and_send_password_reset_email(user)
+    db.commit()
+
+    return PasswordResetDispatchResponse(
+        message=_password_reset_request_message(),
+        debug_reset_url=dispatch.debug_reset_url,
+        debug_reset_token=dispatch.debug_reset_token,
+    )
+
+
+def complete_password_reset(db: Session, payload: PasswordResetConfirm) -> str:
+    user = db.scalar(
+        select(User).where(
+            User.password_reset_token_hash == _hash_verification_token(payload.token)
+        )
+    )
+    if user is None or user.password_reset_expires_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset link is invalid or has already been used",
+        )
+    if _as_utc(user.password_reset_expires_at) < datetime.now(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset link has expired. Request a fresh one from the sign-in form.",
+        )
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    _clear_password_reset_state(user)
+    db.add(user)
+    db.commit()
+
+    return create_access_token(str(user.id))
 
 
 def _issue_and_send_verification_email(user: User) -> VerificationDispatchResponse:
@@ -155,6 +216,37 @@ def _issue_and_send_verification_email(user: User) -> VerificationDispatchRespon
     )
 
 
+def _issue_and_send_password_reset_email(user: User) -> PasswordResetDispatchResponse:
+    settings = get_settings()
+    raw_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + timedelta(minutes=settings.password_reset_token_expire_minutes)
+    reset_url = _build_password_reset_url(raw_token)
+
+    user.password_reset_token_hash = _hash_verification_token(raw_token)
+    user.password_reset_sent_at = datetime.now(UTC)
+    user.password_reset_expires_at = expires_at
+
+    send_email(
+        recipient=user.email,
+        subject="Reset your Offering4AI password",
+        text_body=(
+            f"Hi {user.full_name},\n\n"
+            "Use the link below to choose a new Offering4AI password.\n\n"
+            f"Password reset link: {reset_url}\n\n"
+            f"This link expires in {settings.password_reset_token_expire_minutes} minutes.\n"
+        ),
+    )
+
+    if settings.app_env.lower() == "production":
+        return PasswordResetDispatchResponse(message=_password_reset_request_message())
+
+    return PasswordResetDispatchResponse(
+        message=_password_reset_request_message(),
+        debug_reset_url=reset_url,
+        debug_reset_token=raw_token,
+    )
+
+
 def _hash_verification_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -178,3 +270,48 @@ def _build_verification_url(token: str) -> str:
 
     query = urlencode({"token": token})
     return f"{base_url}/api/auth/verify-email?{query}"
+
+
+def _build_password_reset_url(token: str) -> str:
+    settings = get_settings()
+    if settings.public_site_url:
+        query = urlencode({"reset_password_token": token})
+        return f"{settings.public_site_url.rstrip('/')}/?{query}"
+
+    query = urlencode({"reset_password_token": token})
+    return f"http://localhost:5188/?{query}"
+
+
+def _clear_password_reset_state(user: User) -> None:
+    user.password_reset_token_hash = None
+    user.password_reset_sent_at = None
+    user.password_reset_expires_at = None
+
+
+def _registration_message() -> str:
+    settings = get_settings()
+    if settings.email_delivery_mode.lower().strip() == "smtp":
+        return (
+            "Account created. Check your email to verify your address before logging in or "
+            "submitting ideas."
+        )
+
+    return (
+        "Account created. This environment is using local log mode, so no inbox email will "
+        "arrive. Use the development verify button below or switch EMAIL_DELIVERY_MODE=smtp."
+    )
+
+
+def _resend_message() -> str:
+    settings = get_settings()
+    if settings.email_delivery_mode.lower().strip() == "smtp":
+        return "If that address is pending verification, a fresh confirmation email is on its way."
+
+    return (
+        "If that address is pending verification, this environment is using local log mode. "
+        "Use the development verify button below or switch EMAIL_DELIVERY_MODE=smtp."
+    )
+
+
+def _password_reset_request_message() -> str:
+    return "If that address belongs to a verified account, a password reset link is on its way."

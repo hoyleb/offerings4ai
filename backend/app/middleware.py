@@ -9,6 +9,7 @@ from app.core.http_security import get_bearer_token
 from app.services.request_limits import choose_rate_limit_policy, enforce_rate_limit
 
 STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+CSRF_EXEMPT_PATHS = {"/api/public/ideas/search", "/api/search"}
 
 
 class CsrfProtectionMiddleware(BaseHTTPMiddleware):
@@ -17,6 +18,9 @@ class CsrfProtectionMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+
+        if request.url.path in CSRF_EXEMPT_PATHS:
             return await call_next(request)
 
         if get_bearer_token(request):

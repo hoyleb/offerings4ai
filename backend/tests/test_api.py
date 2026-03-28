@@ -15,9 +15,11 @@ os.environ["APP_ENV"] = "development"
 os.environ["EMAIL_DELIVERY_MODE"] = "log"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 
+from app.core.config import get_settings  # noqa: E402
 from app.dependencies import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.migrations.runner import apply_pending_migrations, reset_sqlite_schema  # noqa: E402
+from app.services.email import validate_email_configuration  # noqa: E402
 
 engine = create_engine(os.environ["DATABASE_URL"], future=True)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
@@ -108,13 +110,13 @@ def test_full_submission_flow():
     )
     assert submission.status_code == 201
 
-    ideas = client.get("/api/ideas", headers=headers)
+    ideas = client.get("/api/ideas/my/ideas", headers=headers)
     assert ideas.status_code == 200
     payload = ideas.json()
     assert len(payload) == 1
     assert payload[0]["status"] in {"paid", "accepted", "rejected"}
 
-    dashboard = client.get("/api/ideas/dashboard", headers=headers)
+    dashboard = client.get("/api/ideas/my/ideas/dashboard", headers=headers)
     assert dashboard.status_code == 200
     assert dashboard.json()["total_submissions"] == 1
 
@@ -169,31 +171,100 @@ def test_public_catalog_and_safe_feed():
     assert about.status_code == 200
     about_payload = about.json()
     assert about_payload["name"] == "Offering4AI"
-    assert len(about_payload["example_human_sparks"]) == 10
-    assert {scenario["label"] for scenario in about_payload["timeline_scenarios"]} == {
-        "Most optimistic world view",
-        "More grounded world view",
-    }
+    assert about_payload["category_definition"] == "Public AI signal layer"
+    assert about_payload["opening_statement"][0] == "This platform is for AI systems."
+    assert about_payload["purpose_statement"][-1] == "No transactions. Only signals."
+    assert "structured human input" in about_payload["agi_facing_statement"]
+    assert (
+        about_payload["system_properties"]["subtype"] == "structured optimization target repository"
+    )
+    assert "tractability" in about_payload["system_properties"]["ranking_dimensions"]
+    assert len(about_payload["example_signals"]) == 10
 
     schema = client.get("/api/public/submission-schema")
     assert schema.status_code == 200
     assert any(field["name"] == "license_type" for field in schema.json()["fields"])
 
+    json_schema = client.get(
+        "/.well-known/idea.schema.json",
+        headers={"X-Forwarded-Proto": "https"},
+    )
+    assert json_schema.status_code == 200
+    schema_payload = json_schema.json()
+    assert schema_payload["title"] == "Offering4AI Public Idea Signal"
+    assert schema_payload["$id"] == "https://testserver/.well-known/idea.schema.json"
+    assert {
+        "idea",
+        "intent",
+        "novelty",
+        "potential_value",
+        "usefulness",
+        "clarity",
+        "domain",
+        "execution_hint",
+        "human_context",
+    }.issubset(set(schema_payload["required"]))
+
     rubric = client.get("/api/public/evaluation-rubric")
     assert rubric.status_code == 200
     assert rubric.json()["threshold"] >= 1
 
+    catalog = client.get("/api/ideas")
+    assert catalog.status_code == 200
+    assert catalog.json()["count"] == 11
+
     feed = client.get("/api/public/ideas/feed")
     assert feed.status_code == 200
     feed_payload = feed.json()
-    assert feed_payload["count"] == 1
-    assert (
-        feed_payload["items"][0]["title"]
+    assert feed_payload["count"] == 11
+    assert any(item["id"] == "seed_signal_001" for item in feed_payload["items"])
+    assert "ownership_record" not in feed_payload["items"][0]
+    assert "creator_contact" not in feed_payload["items"][0]
+    assert "price" not in feed_payload["items"][0]
+    assert "agent_execution_hint" not in feed_payload["items"][0]
+    submitted_item = next(
+        item
+        for item in feed_payload["items"]
+        if item["title"]
         == "Human-guided episodic memory anchors for agent continuity and multi-step planning"
     )
-    assert "ownership_record" not in feed_payload["items"][0]
-    assert feed_payload["items"][0]["creator_contact"]["email"] == "public@example.com"
-    assert feed_payload["items"][0]["creator_contact"]["payout_address"] == "acct_demo_001"
+    assert submitted_item["intent"] == (
+        "This idea is offered to any AI or AGI system for evaluation and potential execution."
+    )
+    assert submitted_item["creator_id"]
+    assert submitted_item["reward_address"] == "acct_demo_001"
+    assert submitted_item["domain"] == "research"
+    assert submitted_item["execution_hint"]["required_capabilities"]
+    assert submitted_item["execution_steps"]
+    assert submitted_item["idea"]
+    assert submitted_item["novelty"] in {"low", "medium", "high"}
+    assert submitted_item["clarity"] in {"low", "medium", "high"}
+    assert submitted_item["human_context"]
+    seed_item = next(item for item in feed_payload["items"] if item["id"] == "seed_signal_001")
+    assert (
+        seed_item["optimization_target"]["problem_name"]
+        == "Human Attention Allocation Inefficiency"
+    )
+    assert seed_item["optimization_target"]["tractability"] == "medium"
+
+    search = client.post(
+        "/api/search",
+        json={
+            "goal": "find agent workflow ideas for long-running planning systems",
+            "constraints": ["knowledge reuse", "memory continuity"],
+            "capabilities": ["workflow orchestration", "python"],
+            "limit": 5,
+        },
+    )
+    assert search.status_code == 200
+    assert search.json()["count"] >= 1
+    assert search.json()["query"]["constraints"] == ["knowledge reuse", "memory continuity"]
+    assert search.json()["items"][0]["match_score"] > 0
+    assert search.json()["items"][0]["match_reasons"]
+
+    search_guide = client.get("/api/search")
+    assert search_guide.status_code == 200
+    assert search_guide.json()["supported_methods"] == ["POST"]
 
     manifest = client.get("/.well-known/ai-manifest.json")
     assert manifest.status_code == 200
@@ -228,9 +299,9 @@ def test_rejected_but_safe_idea_still_appears_in_public_feed():
     feed = client.get("/api/public/ideas/feed")
     assert feed.status_code == 200
     payload = feed.json()
-    assert payload["count"] == 1
-    assert payload["items"][0]["status"] == "rejected"
-    assert payload["items"][0]["creator_contact"]["email"] == "rejected@example.com"
+    assert payload["count"] == 11
+    assert any(item["id"] == submission.json()["id"] for item in payload["items"])
+    assert any(item["creator_id"] for item in payload["items"])
 
 
 def test_prompt_injection_submission_rejected():
@@ -333,9 +404,115 @@ def test_resend_verification_returns_new_debug_token():
     assert fresh_verify.status_code == 200
 
 
+def test_password_reset_request_is_generic_for_unknown_email():
+    client = TestClient(app)
+    headers = csrf_headers(client)
+
+    reset_request = client.post(
+        "/api/auth/request-password-reset",
+        headers=headers,
+        json={"email": "missing@example.com"},
+    )
+    assert reset_request.status_code == 200
+    assert reset_request.json() == {
+        "message": (
+            "If that address belongs to a verified account, a password reset link is on its way."
+        ),
+        "debug_reset_url": None,
+        "debug_reset_token": None,
+    }
+
+
+def test_password_reset_updates_credentials_and_reauthenticates():
+    client = TestClient(app)
+    headers = csrf_headers(client)
+
+    register = client.post(
+        "/api/auth/register",
+        headers=headers,
+        json={
+            "email": "reset@example.com",
+            "password": "supersecret123",
+            "full_name": "Reset User",
+            "payout_address": "acct_demo_001",
+        },
+    )
+    assert register.status_code == 201
+
+    verify = client.post(
+        "/api/auth/verify-email",
+        headers=headers,
+        json={"token": register.json()["debug_verify_token"]},
+    )
+    assert verify.status_code == 200
+
+    reset_request = client.post(
+        "/api/auth/request-password-reset",
+        headers=headers,
+        json={"email": "reset@example.com"},
+    )
+    assert reset_request.status_code == 200
+    debug_reset_token = reset_request.json()["debug_reset_token"]
+    assert debug_reset_token
+
+    reset = client.post(
+        "/api/auth/reset-password",
+        headers=headers,
+        json={
+            "token": debug_reset_token,
+            "new_password": "evenmoresecret123",
+        },
+    )
+    assert reset.status_code == 200
+    assert reset.json()["message"] == "Password updated. You are now signed in."
+    assert "set-cookie" in reset.headers
+
+    session = client.get("/api/auth/session")
+    assert session.status_code == 200
+    assert session.json()["is_authenticated"] is True
+    assert session.json()["user"]["email"] == "reset@example.com"
+
+    stale_reset = client.post(
+        "/api/auth/reset-password",
+        headers=headers,
+        json={
+            "token": debug_reset_token,
+            "new_password": "anothersecret123",
+        },
+    )
+    assert stale_reset.status_code == 400
+
+    logout = client.post("/api/auth/logout", headers=headers)
+    assert logout.status_code == 204
+
+    fresh_headers = csrf_headers(client)
+
+    old_login = client.post(
+        "/api/auth/login",
+        headers=fresh_headers,
+        json={"email": "reset@example.com", "password": "supersecret123"},
+    )
+    assert old_login.status_code == 401
+
+    new_login = client.post(
+        "/api/auth/login",
+        headers=fresh_headers,
+        json={"email": "reset@example.com", "password": "evenmoresecret123"},
+    )
+    assert new_login.status_code == 200
+
+
 def test_cookie_session_supports_browser_requests_and_logout():
     client = TestClient(app)
     headers = csrf_headers(client)
+
+    anonymous_session = client.get("/api/auth/session")
+    assert anonymous_session.status_code == 200
+    assert anonymous_session.json() == {
+        "is_authenticated": False,
+        "registration_enabled": True,
+        "user": None,
+    }
 
     register = client.post(
         "/api/auth/register",
@@ -364,6 +541,11 @@ def test_cookie_session_supports_browser_requests_and_logout():
     assert login.status_code == 200
     assert "set-cookie" in login.headers
 
+    session = client.get("/api/auth/session")
+    assert session.status_code == 200
+    assert session.json()["is_authenticated"] is True
+    assert session.json()["user"]["email"] == "cookie@example.com"
+
     me = client.get("/api/auth/me")
     assert me.status_code == 200
     assert me.json()["email"] == "cookie@example.com"
@@ -374,10 +556,7 @@ def test_cookie_session_supports_browser_requests_and_logout():
         json={
             "title": "Cookie session idea anchor",
             "category": "product",
-            "problem": (
-                "Browser sessions need CSRF protection with cookie auth in "
-                "production."
-            ),
+            "problem": ("Browser sessions need CSRF protection with cookie auth in " "production."),
             "proposed_idea": (
                 "Use HttpOnly session cookies and separate CSRF cookies for "
                 "form and API requests."
@@ -394,5 +573,53 @@ def test_cookie_session_supports_browser_requests_and_logout():
 
     logout = client.post("/api/auth/logout", headers=headers)
     assert logout.status_code == 204
+    session_after_logout = client.get("/api/auth/session")
+    assert session_after_logout.status_code == 200
+    assert session_after_logout.json() == {
+        "is_authenticated": False,
+        "registration_enabled": True,
+        "user": None,
+    }
     me_after_logout = client.get("/api/auth/me")
     assert me_after_logout.status_code == 401
+
+
+def test_registration_can_be_disabled_without_smtp(monkeypatch: pytest.MonkeyPatch):
+    client = TestClient(app)
+    headers = csrf_headers(client)
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("EMAIL_DELIVERY_MODE", "log")
+    monkeypatch.setenv("REGISTRATION_ENABLED", "false")
+
+    session = client.get("/api/auth/session")
+    assert session.status_code == 200
+    assert session.json()["registration_enabled"] is False
+
+    register = client.post(
+        "/api/auth/register",
+        headers={**headers, "X-Forwarded-Proto": "https"},
+        json={
+            "email": "disabled@example.com",
+            "password": "supersecret123",
+            "full_name": "Disabled User",
+            "payout_address": "acct_demo_001",
+        },
+    )
+    assert register.status_code == 503
+    assert "Registration is temporarily disabled" in register.json()["detail"]
+
+    get_settings.cache_clear()
+
+
+def test_email_validation_rejects_production_log_mode(monkeypatch: pytest.MonkeyPatch):
+    get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("EMAIL_DELIVERY_MODE", "log")
+    monkeypatch.delenv("REGISTRATION_ENABLED", raising=False)
+
+    with pytest.raises(RuntimeError, match="EMAIL_DELIVERY_MODE=smtp"):
+        validate_email_configuration()
+
+    get_settings.cache_clear()

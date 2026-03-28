@@ -1,9 +1,13 @@
 import type {
+  AuthSessionResponse,
   CsrfTokenResponse,
   DashboardSummary,
   EmailVerificationResponse,
   Idea,
   IdeaPayload,
+  PasswordResetDispatchResponse,
+  PasswordResetResponse,
+  PublicIdeaFeed,
   RegistrationResponse,
   TokenResponse,
   User,
@@ -205,12 +209,42 @@ export function verifyEmail(token: string): Promise<EmailVerificationResponse> {
 }
 
 /**
+ * Inspect the current browser session without forcing anonymous visitors through 401s.
+ */
+export function fetchSession(): Promise<AuthSessionResponse> {
+  return request<AuthSessionResponse>('/api/auth/session')
+}
+
+/**
  * Send a fresh verification email when an account is still pending confirmation.
  */
 export function resendVerificationEmail(email: string): Promise<VerificationDispatchResponse> {
   return request<VerificationDispatchResponse>('/api/auth/resend-verification', {
     method: 'POST',
     body: JSON.stringify({ email }),
+  })
+}
+
+/**
+ * Request a password reset link for an existing verified account.
+ */
+export function requestPasswordReset(email: string): Promise<PasswordResetDispatchResponse> {
+  return request<PasswordResetDispatchResponse>('/api/auth/request-password-reset', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+/**
+ * Complete a password reset and establish a fresh browser session.
+ */
+export function resetPassword(payload: {
+  token: string
+  new_password: string
+}): Promise<PasswordResetResponse> {
+  return request<PasswordResetResponse>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 
@@ -239,12 +273,19 @@ export function submitIdea(payload: IdeaPayload, token?: string): Promise<Idea> 
  * List all ideas submitted by the current creator.
  */
 export function fetchIdeas(token?: string): Promise<Idea[]> {
-  return request<Idea[]>('/api/ideas', {}, token)
+  return request<Idea[]>('/api/ideas/my/ideas', {}, token)
 }
 
 /**
  * Fetch aggregate creator metrics for the dashboard cards.
  */
 export function fetchDashboard(token?: string): Promise<DashboardSummary> {
-  return request<DashboardSummary>('/api/ideas/dashboard', {}, token)
+  return request<DashboardSummary>('/api/ideas/my/ideas/dashboard', {}, token)
+}
+
+/**
+ * Fetch the public AI-readable idea repository used by the landing page and agent clients.
+ */
+export function fetchPublicIdeaFeed(limit = 100): Promise<PublicIdeaFeed> {
+  return request<PublicIdeaFeed>(`/api/ideas?limit=${limit}`)
 }

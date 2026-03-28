@@ -7,8 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY wheels_linux /app/wheels_linux
+COPY wheels_linux_amd64 /app/wheels_linux_amd64
 COPY requirements.txt /app/
-RUN pip install --no-index --find-links=/app/wheels_linux -r requirements.txt
+RUN arch="$(python -c 'import platform; print(platform.machine())')" && \
+    if [ "${arch}" = "aarch64" ] || [ "${arch}" = "arm64" ]; then \
+      pip install --no-index --find-links=/app/wheels_linux -r requirements.txt; \
+    else \
+      pip install --no-index --find-links=/app/wheels_linux_amd64 -r requirements.txt; \
+    fi
 
 COPY app /app/app
 

@@ -38,8 +38,8 @@ That path is cleaner operationally, but not the cheapest because it expects:
 
 ## Files
 
-- `build-and-push.sh` — builds and pushes all images to Artifact Registry
-- `deploy-vm.sh` — cheapest-path deployment to a single Compute Engine VM
+- `build-and-push.sh` — builds and pushes all images to Artifact Registry, defaulting to `linux/amd64` for the VM path
+- `deploy-vm.sh` — cheapest-path deployment to a single Compute Engine VM, with optional `SSH_KEY_FILE=/path/to/key`
 - `deploy-cloud-run.sh` — managed deployment to Cloud Run services
 - `docker-compose.vm.yml` — production Compose bundle used on the VM
 - `Caddyfile` — reverse proxy and HTTPS entrypoint for the VM path
@@ -53,6 +53,16 @@ That path is cleaner operationally, but not the cheapest because it expects:
 PROJECT_ID=your-gcp-project \
 ZONE=europe-west1-b \
 SITE_ADDRESS=:80 \
+./deploy/gcp/deploy-vm.sh
+```
+
+If you already pushed fresh images and only want to redeploy them onto the VM:
+
+```bash
+PROJECT_ID=your-gcp-project \
+ZONE=europe-west1-b \
+SITE_ADDRESS=:80 \
+SKIP_BUILD=1 \
 ./deploy/gcp/deploy-vm.sh
 ```
 
@@ -81,3 +91,5 @@ FRONTEND_ENV_FILE=deploy/gcp/cloudrun-frontend.env.example \
 - The frontend image is a small nginx runtime image built from a locally generated `dist` bundle.
 - The frontend reads runtime config from `env.js`, so you can reuse the same image across environments.
 - The API now supports configurable CORS via `CORS_ALLOWED_ORIGINS`.
+- For the current live project, the tested VM is `offering4ai-vm` in project `book-creation-genai`, zone `europe-west1-b`.
+- To pause the public surface overnight, stop the VM instead of leaving port 80 open on an idle machine.

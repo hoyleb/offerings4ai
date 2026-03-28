@@ -29,6 +29,15 @@ class UserLogin(BaseModel):
     password: str
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=16, max_length=255)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,10 +51,22 @@ class UserPublic(BaseModel):
     created_at: datetime
 
 
+class AuthSessionResponse(BaseModel):
+    is_authenticated: bool
+    registration_enabled: bool = True
+    user: UserPublic | None = None
+
+
 class VerificationDispatchResponse(BaseModel):
     message: str
     debug_verify_url: str | None = None
     debug_verify_token: str | None = None
+
+
+class PasswordResetDispatchResponse(BaseModel):
+    message: str
+    debug_reset_url: str | None = None
+    debug_reset_token: str | None = None
 
 
 class RegistrationResponse(VerificationDispatchResponse):
@@ -61,6 +82,14 @@ class IdeaCreate(BaseModel):
     why_ai_benefits: str = Field(min_length=20, max_length=5000)
     expected_reward_range: str | None = Field(default=None, max_length=64)
     license_type: LicenseType
+
+
+class PublicIdeaSearchRequest(BaseModel):
+    goal: str = Field(min_length=5, max_length=500)
+    constraints: list[str] = Field(default_factory=list, max_length=20)
+    capabilities: list[str] = Field(default_factory=list, max_length=20)
+    category: SubmissionCategory | None = None
+    limit: int = Field(default=10, ge=1, le=50)
 
 
 class EvaluationPublic(BaseModel):
@@ -138,4 +167,8 @@ class ResendVerificationRequest(BaseModel):
 
 
 class EmailVerificationResponse(BaseModel):
+    message: str
+
+
+class PasswordResetResponse(BaseModel):
     message: str

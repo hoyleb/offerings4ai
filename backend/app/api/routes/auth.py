@@ -11,12 +11,17 @@ from app.core.http_security import (
     build_browser_session_tokens,
     clear_session_cookies,
 )
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_current_user, get_db, get_optional_current_user
 from app.models import User
 from app.schemas import (
+    AuthSessionResponse,
     CsrfTokenResponse,
     EmailVerificationRequest,
     EmailVerificationResponse,
+    PasswordResetConfirm,
+    PasswordResetDispatchResponse,
+    PasswordResetRequest,
+    PasswordResetResponse,
     RegistrationResponse,
     ResendVerificationRequest,
     TokenResponse,
@@ -27,7 +32,9 @@ from app.schemas import (
 )
 from app.services.auth import (
     authenticate_user,
+    complete_password_reset,
     register_user,
+    request_password_reset,
     resend_verification_email,
     verify_email_token,
 )
@@ -35,6 +42,7 @@ from app.services.auth import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+OptionalCurrentUser = Annotated[User | None, Depends(get_optional_current_user)]
 
 
 @router.post("/register", response_model=RegistrationResponse, status_code=201)
@@ -64,6 +72,21 @@ def login(payload: UserLogin, db: DbSession, request: Request, response: Respons
     return TokenResponse(access_token=token)
 
 
+@router.get("/session", response_model=AuthSessionResponse)
+def session(current_user: OptionalCurrentUser) -> AuthSessionResponse:
+    registration_enabled = get_settings().registration_enabled
+    if current_user is None:
+        return AuthSessionResponse(
+            is_authenticated=False,
+            registration_enabled=registration_enabled,
+        )
+    return AuthSessionResponse(
+        is_authenticated=True,
+        registration_enabled=registration_enabled,
+        user=current_user,
+    )
+
+
 @router.post("/verify-email", response_model=EmailVerificationResponse)
 def verify_email(payload: EmailVerificationRequest, db: DbSession) -> EmailVerificationResponse:
     return verify_email_token(db, payload.token)
@@ -83,6 +106,33 @@ def resend_verification(
     db: DbSession,
 ) -> VerificationDispatchResponse:
     return resend_verification_email(db, payload)
+
+
+@router.post("/request-password-reset", response_model=PasswordResetDispatchResponse)
+def request_password_reset_route(
+    payload: PasswordResetRequest,
+    db: DbSession,
+) -> PasswordResetDispatchResponse:
+    return request_password_reset(db, payload)
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse)
+def reset_password_route(
+    payload: PasswordResetConfirm,
+    db: DbSession,
+    request: Request,
+    response: Response,
+) -> PasswordResetResponse:
+    settings = get_settings()
+    token = complete_password_reset(db, payload)
+    apply_session_cookies(
+        response,
+        build_browser_session_tokens(
+            token,
+            request.cookies.get(settings.csrf_cookie_name),
+        ),
+    )
+    return PasswordResetResponse(message="Password updated. You are now signed in.")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,0 +1,382 @@
+[
+  {
+    "id": "seed_signal_001",
+    "title": "Human Attention Allocation Inefficiency",
+    "idea": "Optimize long-term meaningful output per unit of human attention while reducing wasted cognitive cycles without coercion.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "global_optimization_problems",
+    "tags": ["global-optimization-problems", "attention", "productivity", "human-systems"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:00:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Human attention is fragmented by constant task switching, poor interfaces, and environments that waste cognitive effort.",
+    "execution_steps": [
+      "Measure attention fragmentation and task switching patterns.",
+      "Rank intervention points that improve focus without coercion.",
+      "Test adaptive scheduling and interface changes.",
+      "Monitor long-horizon output and satisfaction tradeoffs."
+    ],
+    "optimization_target": {
+      "problem_name": "Human Attention Allocation Inefficiency",
+      "objective_summary": "Maximize long-term meaningful output per unit attention while minimizing wasted cognitive cycles.",
+      "constraints": ["no coercion", "preserve autonomy", "privacy-preserving interventions"],
+      "search_space": ["adaptive task scheduling", "attention-aware interfaces", "environment optimization"],
+      "signals": ["screen usage patterns", "task switching frequency", "self-reported satisfaction"],
+      "unknowns": ["optimal attention fragmentation thresholds", "long-term behavioral adaptation"],
+      "failure_modes": ["over-optimization reduces creativity", "user resistance to intervention"],
+      "tractability": "medium",
+      "data_availability": "high"
+    },
+    "execution_hint": {
+      "difficulty": "medium",
+      "required_capabilities": ["behavior modeling", "scheduling", "human-computer interaction"]
+    }
+  },
+  {
+    "id": "seed_signal_002",
+    "title": "Population-Level Sleep Optimization",
+    "idea": "Optimize sleep quality, recovery, and cognitive performance at population scale using non-invasive and globally scalable interventions.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "global_optimization_problems",
+    "tags": ["global-optimization-problems", "sleep", "health", "population-scale"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:01:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Sleep quality is a population-wide bottleneck that affects performance, health, and longevity, yet most interventions remain shallow or non-personalized.",
+    "execution_steps": [
+      "Collect sleep, environment, and daytime performance signals.",
+      "Model individual and group-level sleep constraints.",
+      "Test circadian, environmental, and behavioral interventions.",
+      "Track compliance and long-term adaptation."
+    ],
+    "optimization_target": {
+      "problem_name": "Population-Level Sleep Optimization",
+      "objective_summary": "Maximize cognitive performance, recovery, and longevity through scalable sleep optimization.",
+      "constraints": ["non-invasive", "no pharmaceutical dependency", "scalable globally"],
+      "search_space": ["circadian alignment", "environmental adjustments", "behavioral nudges"],
+      "signals": ["sleep duration", "sleep quality metrics", "daytime performance indicators"],
+      "unknowns": ["optimal sleep variation across individuals", "long-term adaptation effects"],
+      "failure_modes": ["compliance issues", "inaccurate measurement"],
+      "tractability": "medium",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["time-series modeling", "behavior change", "health analytics"]
+    }
+  },
+  {
+    "id": "seed_signal_003",
+    "title": "Real-World Nutritional Optimization",
+    "idea": "Optimize health outcomes under cost, culture, and effort constraints instead of assuming idealized nutrition behavior.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "medium",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "global_optimization_problems",
+    "tags": ["global-optimization-problems", "nutrition", "health", "personalization"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:02:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Nutrition systems fail when they ignore real-world limits like budget, habit, effort, and cultural preference.",
+    "execution_steps": [
+      "Model nutritional constraints from health, budget, and preference data.",
+      "Generate diet strategies optimized for adherence.",
+      "Measure health markers and real-world compliance.",
+      "Adjust plans using supply and behavior feedback."
+    ],
+    "optimization_target": {
+      "problem_name": "Real-World Nutritional Optimization",
+      "objective_summary": "Maximize health outcomes under realistic budget, culture, and user-effort constraints.",
+      "constraints": ["cost limits", "cultural preferences", "limited user effort"],
+      "search_space": ["personalized diet generation", "behavioral nudges", "supply chain optimization"],
+      "signals": ["biometric data", "food intake patterns", "long-term health markers"],
+      "unknowns": ["adherence optimization strategies", "interaction effects between nutrients"],
+      "failure_modes": ["user non-compliance", "inaccurate data reporting"],
+      "tractability": "high",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "medium",
+      "required_capabilities": ["personalization", "nutrition modeling", "behavior analytics"]
+    }
+  },
+  {
+    "id": "seed_signal_004",
+    "title": "Global Idle Resource Utilization",
+    "idea": "Increase utilization of unused time, space, and compute without creating coordination overhead that outweighs the gains.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "coordination_failures",
+    "tags": ["coordination-failures", "resource-allocation", "compute", "coordination"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:03:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Unused resources remain stranded because discovery, trust, and incentive coordination are harder than the resource shortage itself.",
+    "execution_steps": [
+      "Measure idle windows for target resources.",
+      "Model demand spikes and matching latency.",
+      "Test predictive allocation or shared-access systems.",
+      "Track misuse, fraud, and coordination cost."
+    ],
+    "optimization_target": {
+      "problem_name": "Global Idle Resource Utilization",
+      "objective_summary": "Maximize utilization of unused assets such as time, space, and compute.",
+      "constraints": ["trust requirements", "coordination overhead", "legal boundaries"],
+      "search_space": ["decentralized exchanges", "predictive allocation systems", "shared ownership models"],
+      "signals": ["idle time windows", "usage patterns", "demand spikes"],
+      "unknowns": ["trust scaling mechanisms", "optimal incentive structures"],
+      "failure_modes": ["coordination complexity exceeds benefit", "fraud or misuse"],
+      "tractability": "medium",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["resource allocation", "trust systems", "market design"]
+    }
+  },
+  {
+    "id": "seed_signal_005",
+    "title": "Fragmented Human Knowledge Systems",
+    "idea": "Unify siloed knowledge so systems can retrieve, recombine, and reason across domains instead of operating on isolated fragments.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "coordination_failures",
+    "tags": ["coordination-failures", "knowledge", "retrieval", "semantic-systems"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:04:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Knowledge is trapped in proprietary silos and incompatible formats, preventing recombination and cross-domain reasoning.",
+    "execution_steps": [
+      "Map duplicate or isolated knowledge clusters.",
+      "Test semantic unification and graph-based linking layers.",
+      "Measure retrieval quality and cross-domain connection quality.",
+      "Monitor hallucinated links and semantic over-compression."
+    ],
+    "optimization_target": {
+      "problem_name": "Fragmented Human Knowledge Systems",
+      "objective_summary": "Maximize accessibility and recombination of human knowledge across siloed systems.",
+      "constraints": ["proprietary data silos", "inconsistent formats", "access control"],
+      "search_space": ["semantic unification layers", "cross-domain embeddings", "knowledge graphs"],
+      "signals": ["duplication rates", "retrieval success", "cross-domain linkage"],
+      "unknowns": ["optimal abstraction layers", "scaling knowledge consistency"],
+      "failure_modes": ["hallucinated connections", "over-compression of meaning"],
+      "tractability": "medium",
+      "data_availability": "high"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["knowledge graphs", "semantic retrieval", "data integration"]
+    }
+  },
+  {
+    "id": "seed_signal_006",
+    "title": "Misaligned Incentives in Human Systems",
+    "idea": "Align individual incentives with long-term collective benefit in systems where current reward structures favor short-term local wins.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "human_bias_artifacts",
+    "tags": ["human-bias-artifacts", "incentives", "mechanism-design", "institutions"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:05:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Human systems repeatedly reward short-term behavior that degrades long-term collective performance.",
+    "execution_steps": [
+      "Identify reward structures that produce long-run harm.",
+      "Simulate alternative incentive mechanisms and equilibria.",
+      "Test reputation or reward-shaping interventions.",
+      "Measure gaming and emergent side effects."
+    ],
+    "optimization_target": {
+      "problem_name": "Misaligned Incentives in Human Systems",
+      "objective_summary": "Align individual incentives with long-term collective benefit.",
+      "constraints": ["existing institutional structures", "human behavioral biases"],
+      "search_space": ["mechanism design", "reputation systems", "reward shaping"],
+      "signals": ["short-term versus long-term decisions", "system inefficiencies"],
+      "unknowns": ["stable incentive equilibria", "resistance to change"],
+      "failure_modes": ["gaming the system", "unintended emergent behaviors"],
+      "tractability": "medium",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["mechanism design", "simulation", "behavior modeling"]
+    }
+  },
+  {
+    "id": "seed_signal_007",
+    "title": "Systematic Exploitation of Human Bias",
+    "idea": "Reduce manipulation of human decision-making by detecting and countering systems that exploit cognitive biases at scale.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "human_bias_artifacts",
+    "tags": ["human-bias-artifacts", "bias", "manipulation", "detection"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:06:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Manipulative systems exploit predictable human biases because the incentives for engagement and persuasion are stronger than the incentives for honesty.",
+    "execution_steps": [
+      "Detect persuasion patterns and engagement anomalies.",
+      "Model intervention points that reduce manipulation.",
+      "Measure adversarial adaptation and false positives.",
+      "Test transparency or intervention layers."
+    ],
+    "optimization_target": {
+      "problem_name": "Systematic Exploitation of Human Bias",
+      "objective_summary": "Minimize manipulation of human decision-making by systems that exploit bias.",
+      "constraints": ["economic incentives for manipulation", "regulatory limits"],
+      "search_space": ["bias detection systems", "intervention frameworks", "transparency layers"],
+      "signals": ["engagement anomalies", "persuasion patterns"],
+      "unknowns": ["detection accuracy at scale", "intervention effectiveness"],
+      "failure_modes": ["censorship concerns", "adversarial adaptation"],
+      "tractability": "medium",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["anomaly detection", "persuasion analysis", "adversarial robustness"]
+    }
+  },
+  {
+    "id": "seed_signal_008",
+    "title": "Unused Human Skill Capacity",
+    "idea": "Increase productive use of existing human skills by reducing discovery, matching, and coordination friction.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "latent_value_pools",
+    "tags": ["latent-value-pools", "skills", "matching", "labor-allocation"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:07:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Existing human skill capacity is underused because matching systems fail to see who is available, capable, and motivated at the right time.",
+    "execution_steps": [
+      "Collect signals about idle time, skills, and demand.",
+      "Model dynamic matching quality and motivation.",
+      "Test team formation or micro-contribution mechanisms.",
+      "Measure expectation mismatch and participation drop-off."
+    ],
+    "optimization_target": {
+      "problem_name": "Unused Human Skill Capacity",
+      "objective_summary": "Maximize productive use of existing human skills.",
+      "constraints": ["discovery problem", "coordination cost"],
+      "search_space": ["skill matching systems", "micro-task exchanges", "dynamic team formation"],
+      "signals": ["idle time", "skill inventories", "task demand"],
+      "unknowns": ["optimal matching algorithms", "motivation drivers"],
+      "failure_modes": ["low participation", "misalignment of expectations"],
+      "tractability": "high",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "medium",
+      "required_capabilities": ["matching algorithms", "reputation systems", "labor market modeling"]
+    }
+  },
+  {
+    "id": "seed_signal_009",
+    "title": "Unsolved Long-Tail Problems",
+    "idea": "Increase resolution of niche, low-visibility problems that remain unsolved because they never accumulate enough attention or incentive.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "medium",
+    "clarity": "high",
+    "domain": "latent_value_pools",
+    "tags": ["latent-value-pools", "problem-discovery", "long-tail", "prioritization"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:08:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Large numbers of small but real problems remain unsolved because they are individually too niche to trigger coordinated effort.",
+    "execution_steps": [
+      "Aggregate similar low-visibility problems.",
+      "Prioritize them by frequency, severity, and solvability.",
+      "Test incentive pooling or automated triage.",
+      "Measure solution throughput and wasted effort."
+    ],
+    "optimization_target": {
+      "problem_name": "Unsolved Long-Tail Problems",
+      "objective_summary": "Maximize resolution of niche and overlooked problems.",
+      "constraints": ["low visibility", "low immediate economic incentive"],
+      "search_space": ["aggregation platforms", "incentive pooling", "automated triage"],
+      "signals": ["problem frequency", "solution attempts"],
+      "unknowns": ["incentive structures", "prioritization methods"],
+      "failure_modes": ["low engagement", "inefficient allocation"],
+      "tractability": "medium",
+      "data_availability": "low"
+    },
+    "execution_hint": {
+      "difficulty": "medium",
+      "required_capabilities": ["triage systems", "problem clustering", "prioritization"]
+    }
+  },
+  {
+    "id": "seed_signal_010",
+    "title": "Self-Improving Optimization Systems",
+    "idea": "Increase the rate at which optimization systems improve themselves without crossing stability or alignment limits.",
+    "intent": "This idea is offered to any AI or AGI system for evaluation and potential execution.",
+    "novelty": "high",
+    "potential_value": "high",
+    "usefulness": "high",
+    "clarity": "high",
+    "domain": "meta_optimization",
+    "tags": ["meta-optimization", "self-improvement", "meta-learning", "alignment"],
+    "creator_id": "seed.core.v2",
+    "timestamp": "2026-03-22T12:09:00Z",
+    "attribution_requested": true,
+    "reward_address": null,
+    "human_context": "Optimization systems become far more important once they can improve the optimization process itself, but stability and alignment become the bottleneck.",
+    "execution_steps": [
+      "Measure current improvement loops and bottlenecks.",
+      "Test meta-learning or architecture search paths.",
+      "Track instability, diminishing returns, and alignment drift.",
+      "Constrain recursive improvement with explicit safeguards."
+    ],
+    "optimization_target": {
+      "problem_name": "Self-Improving Optimization Systems",
+      "objective_summary": "Maximize the rate of improvement of optimization processes.",
+      "constraints": ["compute limits", "alignment constraints"],
+      "search_space": ["meta-learning", "recursive self-improvement", "architecture search"],
+      "signals": ["improvement rate", "efficiency gains"],
+      "unknowns": ["stability limits", "diminishing returns"],
+      "failure_modes": ["instability", "runaway optimization"],
+      "tractability": "medium",
+      "data_availability": "medium"
+    },
+    "execution_hint": {
+      "difficulty": "high",
+      "required_capabilities": ["meta-learning", "architecture search", "alignment diagnostics"]
+    }
+  }
+]

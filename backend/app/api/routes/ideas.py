@@ -28,7 +28,7 @@ def submit_idea(payload: IdeaCreate, db: DbSession, current_user: CurrentUser) -
     return refreshed
 
 
-@router.get("", response_model=list[IdeaPublic])
+@router.get("/my/ideas", response_model=list[IdeaPublic])
 def list_ideas(db: DbSession, current_user: CurrentUser) -> list[IdeaPublic]:
     statement = (
         select(Idea)
@@ -39,12 +39,12 @@ def list_ideas(db: DbSession, current_user: CurrentUser) -> list[IdeaPublic]:
     return list(db.scalars(statement).unique().all())
 
 
-@router.get("/dashboard", response_model=DashboardSummary)
+@router.get("/my/ideas/dashboard", response_model=DashboardSummary)
 def dashboard(db: DbSession, current_user: CurrentUser) -> DashboardSummary:
     return get_dashboard_summary(db, current_user)
 
 
-@router.get("/{idea_id}", response_model=IdeaPublic)
+@router.get("/my/ideas/{idea_id}", response_model=IdeaPublic)
 def get_idea(idea_id: str, db: DbSession, current_user: CurrentUser) -> IdeaPublic:
     statement = (
         select(Idea)

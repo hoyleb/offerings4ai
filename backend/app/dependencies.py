@@ -22,6 +22,17 @@ def get_db():
     yield from get_session()
 
 
+def _resolve_user_from_token(token: str | None, db: DbSession) -> User | None:
+    if not token:
+        return None
+
+    subject = decode_access_token(token)
+    if not subject:
+        return None
+
+    return db.get(User, UUID(subject))
+
+
 def get_current_user(
     cookie_token: CookieTokenDependency,
     bearer: BearerDependency,
@@ -31,11 +42,16 @@ def get_current_user(
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    subject = decode_access_token(token)
-    if not subject:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    user = db.get(User, UUID(subject))
+    user = _resolve_user_from_token(token, db)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return user
+
+
+def get_optional_current_user(
+    cookie_token: CookieTokenDependency,
+    bearer: BearerDependency,
+    db: DbSession,
+) -> User | None:
+    token = bearer.credentials if bearer is not None else cookie_token
+    return _resolve_user_from_token(token, db)

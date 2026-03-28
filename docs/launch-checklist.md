@@ -67,3 +67,4 @@ Verify these live URLs:
 - If using OpenAI evaluation, store `OPENAI_API_KEY` securely.
 - Set up regular VM snapshots or database backups if you choose the VM path.
 - Add uptime monitoring for the homepage and `/health`.
+- Know the exact `gcloud compute instances start` and `stop` commands for the VM if you plan to pause the public deployment outside test windows.

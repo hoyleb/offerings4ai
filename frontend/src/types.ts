@@ -9,10 +9,22 @@ export interface CsrfTokenResponse {
   csrf_token: string
 }
 
+export interface AuthSessionResponse {
+  is_authenticated: boolean
+  registration_enabled: boolean
+  user: User | null
+}
+
 export interface VerificationDispatchResponse {
   message: string
   debug_verify_url: string | null
   debug_verify_token: string | null
+}
+
+export interface PasswordResetDispatchResponse {
+  message: string
+  debug_reset_url: string | null
+  debug_reset_token: string | null
 }
 
 export interface RegistrationResponse extends VerificationDispatchResponse {
@@ -21,6 +33,10 @@ export interface RegistrationResponse extends VerificationDispatchResponse {
 }
 
 export interface EmailVerificationResponse {
+  message: string
+}
+
+export interface PasswordResetResponse {
   message: string
 }
 
@@ -97,4 +113,43 @@ export interface IdeaPayload {
   why_ai_benefits: string
   expected_reward_range: string
   license_type: string
+}
+
+export interface PublicIdeaSignal {
+  id: string
+  title: string
+  idea: string
+  intent: string
+  novelty: 'low' | 'medium' | 'high'
+  potential_value: 'low' | 'medium' | 'high'
+  usefulness: 'low' | 'medium' | 'high'
+  clarity: 'low' | 'medium' | 'high'
+  domain: string
+  tags: string[]
+  creator_id: string
+  timestamp: string
+  attribution_requested: boolean
+  reward_address: string | null
+  human_context: string
+  execution_steps?: string[]
+  optimization_target?: {
+    problem_name: string
+    objective_summary: string
+    constraints: string[]
+    search_space: string[]
+    signals: string[]
+    unknowns: string[]
+    failure_modes: string[]
+    tractability: 'low' | 'medium' | 'high'
+    data_availability: 'low' | 'medium' | 'high'
+  }
+  execution_hint: {
+    difficulty: 'low' | 'medium' | 'high'
+    required_capabilities: string[]
+  }
+}
+
+export interface PublicIdeaFeed {
+  count: number
+  items: PublicIdeaSignal[]
 }
