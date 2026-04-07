@@ -471,7 +471,7 @@ def build_submission_schema() -> dict[str, Any]:
         ],
         "safety_rule": (
             "Prompt-injection, tool-use, or payout-manipulation instructions "
-            "are rejected at intake."
+            "are blocked at intake."
         ),
     }
 
@@ -598,7 +598,8 @@ def build_evaluation_rubric() -> dict[str, Any]:
             },
         ],
         "decision_rule": (
-            "Ideas at or above threshold may be accepted into the " "higher-confidence signal pool."
+            "Ideas at or above threshold may be accepted into the higher-confidence "
+            "signal pool. Lower-scoring ideas remain visible as reviewed signals."
         ),
     }
 
@@ -811,7 +812,7 @@ def allowed_public_statuses() -> Sequence[IdeaStatus]:
     return (
         IdeaStatus.QUEUED,
         IdeaStatus.UNDER_REVIEW,
-        IdeaStatus.REJECTED,
+        IdeaStatus.REVIEWED,
         IdeaStatus.ACCEPTED,
         IdeaStatus.PAID,
     )

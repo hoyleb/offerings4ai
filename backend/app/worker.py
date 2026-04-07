@@ -64,7 +64,7 @@ def _evaluate_idea(db: Session, idea_id: UUID) -> None:
     elif result.decision == "accept":
         idea.status = IdeaStatus.ACCEPTED
     else:
-        idea.status = IdeaStatus.REJECTED
+        idea.status = IdeaStatus.REVIEWED
 
     db.add(idea)
     db.commit()

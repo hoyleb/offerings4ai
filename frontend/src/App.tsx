@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import AuthPanel from './components/AuthPanel'
 import Dashboard from './components/Dashboard'
@@ -86,6 +86,15 @@ const IMPORTANT_NOTES = [
 ] as const
 
 const EXAMPLE_CARD_COUNT = 6
+const TOAST_DURATION_MS = 5000
+
+type ToastKind = 'success' | 'error' | 'info'
+
+interface Toast {
+  id: number
+  kind: ToastKind
+  text: string
+}
 
 function shuffleSignals(signals: PublicIdeaSignal[]): PublicIdeaSignal[] {
   const copy = [...signals]
@@ -117,14 +126,18 @@ function App() {
   const [exampleSignals, setExampleSignals] = useState<PublicIdeaSignal[]>([])
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [toasts, setToasts] = useState<Toast[]>([])
   const [pendingVerificationToken, setPendingVerificationToken] = useState('')
   const [passwordResetToken, setPasswordResetToken] = useState('')
   const [sessionRefreshKey, setSessionRefreshKey] = useState(0)
   const [registrationEnabled, setRegistrationEnabled] = useState(true)
+  const toastTimeoutsRef = useRef<number[]>([])
 
   const isAuthenticated = useMemo(() => user !== null, [user])
+  const hasPendingIdeas = useMemo(
+    () => ideas.some((idea) => idea.status === 'queued' || idea.status === 'under_review'),
+    [ideas],
+  )
   const submitTargetId = isAuthenticated ? 'publish-idea-form' : 'creator-access'
 
   const publicLinks = useMemo(
@@ -163,6 +176,28 @@ function App() {
     [],
   )
 
+  const dismissToast = (toastId: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== toastId))
+  }
+
+  const pushToast = (kind: ToastKind, text: string) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000)
+    setToasts((current) => [...current, { id, kind, text }])
+    if (typeof window !== 'undefined') {
+      const timeoutId = window.setTimeout(() => {
+        dismissToast(id)
+      }, TOAST_DURATION_MS)
+      toastTimeoutsRef.current.push(timeoutId)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      toastTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+      toastTimeoutsRef.current = []
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
@@ -200,9 +235,8 @@ function App() {
           setSummary(null)
           return
         }
-        const nextMessage =
-          loadError instanceof Error ? loadError.message : 'Unable to load account'
-        setError(nextMessage)
+        const nextMessage = loadError instanceof Error ? loadError.message : 'Unable to load account'
+        pushToast('error', nextMessage)
         setRegistrationEnabled(true)
         setUser(null)
         setIdeas([])
@@ -278,6 +312,22 @@ function App() {
   }, [publicSignals])
 
   useEffect(() => {
+    if (!isAuthenticated || !hasPendingIdeas) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refresh().catch(() => {
+        // Keep background refresh silent; the visible toast already confirms submission.
+      })
+    }, 2000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [hasPendingIdeas, isAuthenticated])
+
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return
     }
@@ -295,17 +345,16 @@ function App() {
 
     const confirmEmail = async () => {
       setBusy(true)
-      setError('')
-      setMessage('')
       try {
         const response = await verifyEmail(verificationToken)
         if (!cancelled) {
           setPendingVerificationToken('')
-          setMessage(response.message)
+          pushToast('success', response.message)
         }
       } catch (verificationError) {
         if (!cancelled) {
-          setError(
+          pushToast(
+            'error',
             verificationError instanceof Error
               ? verificationError.message
               : 'Email verification failed',
@@ -338,14 +387,12 @@ function App() {
     payout_address: string
   }) => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       const registration = await registerUser(payload)
       setPendingVerificationToken(registration.debug_verify_token ?? '')
-      setMessage(registration.message)
+      pushToast('success', registration.message)
     } catch (registerError) {
-      setError(registerError instanceof Error ? registerError.message : 'Registration failed')
+      pushToast('error', registerError instanceof Error ? registerError.message : 'Registration failed')
     } finally {
       setBusy(false)
     }
@@ -353,14 +400,12 @@ function App() {
 
   const handleLogin = async (payload: { email: string; password: string }) => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       await loginUser(payload)
       setSessionRefreshKey((current) => current + 1)
-      setMessage('Logged in successfully.')
+      pushToast('success', 'Signed in. Publishing is now enabled for this session.')
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : 'Login failed')
+      pushToast('error', loginError instanceof Error ? loginError.message : 'Login failed')
     } finally {
       setBusy(false)
     }
@@ -368,14 +413,13 @@ function App() {
 
   const handleResendVerification = async (email: string) => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       const response = await resendVerificationEmail(email)
       setPendingVerificationToken(response.debug_verify_token ?? '')
-      setMessage(response.message)
+      pushToast('success', response.message)
     } catch (resendError) {
-      setError(
+      pushToast(
+        'error',
         resendError instanceof Error ? resendError.message : 'Verification resend failed',
       )
     } finally {
@@ -385,14 +429,13 @@ function App() {
 
   const handleRequestPasswordReset = async (email: string) => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       const response = await requestPasswordReset(email)
       setPasswordResetToken(response.debug_reset_token ?? '')
-      setMessage(response.message)
+      pushToast('success', response.message)
     } catch (resetError) {
-      setError(
+      pushToast(
+        'error',
         resetError instanceof Error ? resetError.message : 'Password reset request failed',
       )
     } finally {
@@ -402,16 +445,14 @@ function App() {
 
   const handleResetPassword = async (payload: { token: string; new_password: string }) => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       const response = await resetPassword(payload)
       setPasswordResetToken('')
       setPendingVerificationToken('')
       setSessionRefreshKey((current) => current + 1)
-      setMessage(response.message)
+      pushToast('success', response.message)
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : 'Password reset failed')
+      pushToast('error', resetError instanceof Error ? resetError.message : 'Password reset failed')
     } finally {
       setBusy(false)
     }
@@ -423,14 +464,13 @@ function App() {
     }
 
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       const response = await verifyEmail(pendingVerificationToken)
       setPendingVerificationToken('')
-      setMessage(response.message)
+      pushToast('success', response.message)
     } catch (verificationError) {
-      setError(
+      pushToast(
+        'error',
         verificationError instanceof Error
           ? verificationError.message
           : 'Email verification failed',
@@ -442,15 +482,25 @@ function App() {
 
   const handleSubmitIdea = async (payload: IdeaPayload): Promise<boolean> => {
     setBusy(true)
-    setError('')
-    setMessage('')
     try {
       await submitIdea(payload)
-      await refresh()
-      setMessage('Idea published. Evaluation has been queued or completed.')
+      pushToast(
+        'success',
+        'Idea published. It is now visible on your dashboard while review continues in the background.',
+      )
+      try {
+        await refresh()
+      } catch (refreshError) {
+        pushToast(
+          'info',
+          refreshError instanceof Error
+            ? `Idea saved, but the dashboard did not refresh yet: ${refreshError.message}`
+            : 'Idea saved, but the dashboard did not refresh yet. Reload to see the latest state.',
+        )
+      }
       return true
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Submission failed')
+      pushToast('error', submitError instanceof Error ? submitError.message : 'Submission failed')
       return false
     } finally {
       setBusy(false)
@@ -459,15 +509,14 @@ function App() {
 
   const logout = async () => {
     setBusy(true)
-    setError('')
     try {
       await logoutUser()
       setUser(null)
       setIdeas([])
       setSummary(null)
-      setMessage('Logged out.')
+      pushToast('info', 'Logged out.')
     } catch (logoutError) {
-      setError(logoutError instanceof Error ? logoutError.message : 'Logout failed')
+      pushToast('error', logoutError instanceof Error ? logoutError.message : 'Logout failed')
     } finally {
       setBusy(false)
     }
@@ -475,6 +524,27 @@ function App() {
 
   return (
     <main className="app-shell">
+      {toasts.length > 0 ? (
+        <div aria-atomic="false" aria-live="polite" className="toast-stack">
+          {toasts.map((toast) => (
+            <div
+              className={`toast toast-${toast.kind}`}
+              key={toast.id}
+              role={toast.kind === 'error' ? 'alert' : 'status'}
+            >
+              <span>{toast.text}</span>
+              <button
+                aria-label="Dismiss notification"
+                className="toast-dismiss"
+                onClick={() => dismissToast(toast.id)}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <header className="hero">
         <div>
           <span className="eyebrow">Offering4AI · public signal layer for AI systems</span>
@@ -525,9 +595,6 @@ function App() {
           </div>
         ) : null}
       </header>
-
-      {error ? <div className="banner error-banner">{error}</div> : null}
-      {message ? <div className="banner success-banner">{message}</div> : null}
 
       <section className="panel flow-panel">
         <div className="section-heading">
@@ -691,10 +758,30 @@ function App() {
         />
       ) : null}
       {isAuthenticated ? (
-        <div className="workspace-grid">
-          <IdeaForm busy={busy} onSubmit={handleSubmitIdea} sectionId="publish-idea-form" />
-          <Dashboard ideas={ideas} summary={summary} />
-        </div>
+        <>
+          <section className="panel session-panel">
+            <div className="session-panel-copy">
+              <span className="session-chip">Signed in</span>
+              <div>
+                <h2>{user?.full_name ?? 'Creator workspace'}</h2>
+                <p>
+                  Logged in as {user?.email}. Publishing is active, and successful submissions show
+                  up here immediately.
+                </p>
+              </div>
+            </div>
+            <div className="session-panel-meta">
+              <span className="session-meta-pill">Email verified</span>
+              <a className="secondary-button" href="#publish-idea-form">
+                Jump to publish form
+              </a>
+            </div>
+          </section>
+          <div className="workspace-grid">
+            <IdeaForm busy={busy} onSubmit={handleSubmitIdea} sectionId="publish-idea-form" />
+            <Dashboard ideas={ideas} summary={summary} />
+          </div>
+        </>
       ) : null}
     </main>
   )

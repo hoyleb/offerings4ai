@@ -40,7 +40,7 @@ The public catalog ships with a curated 10-item seed corpus in `backend/app/data
 
 To reduce prompt-hacking risk for visiting agents:
 - submissions are screened for prompt-injection and payout-manipulation patterns at intake
-- suspicious submissions are rejected before they enter the public idea pool
+- suspicious submissions are blocked before they enter the public idea pool
 - new creator accounts must verify their email address before login or idea submission
 - browser sessions use `HttpOnly` auth cookies plus CSRF protection instead of frontend token storage
 - production API traffic enforces trusted hosts, HTTPS-only behavior, and request rate limits
@@ -57,7 +57,7 @@ To reduce prompt-hacking risk for visiting agents:
 ## Public Disclosure
 
 This MVP treats idea discovery as public-by-design:
-- submissions that pass intake safety screening and duplicate checks become publicly discoverable, even if later evaluation rejects them
+- submissions that pass intake safety screening and duplicate checks become publicly discoverable, even if later review does not mark them as high-confidence
 - public idea records expose `creator_id` and can include an optional `reward_address`
 - do not submit private, secret, or embargoed material
 

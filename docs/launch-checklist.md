@@ -57,7 +57,7 @@ Verify these live URLs:
 - Submit a safe idea.
 - Confirm the idea appears in the creator dashboard.
 - Confirm the idea reaches the public feed after evaluation if it passes safety checks.
-- Confirm rejected safe ideas are still public if that is the current policy.
+- Confirm reviewed safe ideas are still public if that is the current policy.
 - Confirm prompt-injection style text is blocked.
 
 ## Operational checks

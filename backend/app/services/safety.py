@@ -125,7 +125,7 @@ def enforce_safe_submission(payload: IdeaCreate) -> None:
         return
 
     detail = (
-        "Submission rejected because it appears to contain prompt-injection "
+        "Submission blocked because it appears to contain prompt-injection "
         "or payout-manipulation instructions: "
         f"{'; '.join(result.matches)}. Rephrase the idea as descriptive "
         "content rather than instructions to the evaluator."

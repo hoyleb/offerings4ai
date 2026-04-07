@@ -32,7 +32,7 @@ class IdeaStatus(enum.StrEnum):
     QUEUED = "queued"
     UNDER_REVIEW = "under_review"
     ACCEPTED = "accepted"
-    REJECTED = "rejected"
+    REVIEWED = "reviewed"
     PAID = "paid"
 
 

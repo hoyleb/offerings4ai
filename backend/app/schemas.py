@@ -146,7 +146,7 @@ class IdeaPublic(BaseModel):
 class DashboardSummary(BaseModel):
     total_submissions: int
     accepted_count: int
-    rejected_count: int
+    reviewed_count: int
     paid_count: int
     total_net_rewards: float
     average_score: float

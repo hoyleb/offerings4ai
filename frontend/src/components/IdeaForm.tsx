@@ -253,6 +253,10 @@ function IdeaForm({ busy, onSubmit, sectionId }: IdeaFormProps) {
         <button className="primary-button" disabled={busy} type="submit">
           {busy ? 'Publishing...' : 'Publish signal'}
         </button>
+        <p className="form-status-note full-width">
+          After you publish, the signal appears on your dashboard immediately and remains public if
+          it passes intake safety checks.
+        </p>
       </form>
     </section>
   )

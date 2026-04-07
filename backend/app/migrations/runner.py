@@ -66,6 +66,93 @@ def _upgrade_password_reset_columns(connection: Connection) -> None:
         connection.execute(text("ALTER TABLE users ADD COLUMN password_reset_expires_at TIMESTAMP"))
 
 
+def _upgrade_reviewed_status(connection: Connection) -> None:
+    inspector = inspect(connection)
+    existing_tables = set(inspector.get_table_names())
+    if "ideas" not in existing_tables:
+        return
+
+    if connection.dialect.name == "postgresql":
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_type t
+                        JOIN pg_enum e ON e.enumtypid = t.oid
+                        WHERE t.typname = 'ideastatus' AND e.enumlabel = 'REJECTED'
+                    ) AND NOT EXISTS (
+                        SELECT 1
+                        FROM pg_type t
+                        JOIN pg_enum e ON e.enumtypid = t.oid
+                        WHERE t.typname = 'ideastatus' AND e.enumlabel = 'REVIEWED'
+                    ) THEN
+                        ALTER TYPE ideastatus RENAME VALUE 'REJECTED' TO 'REVIEWED';
+                    END IF;
+                END
+                $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                "UPDATE ideas SET status = CAST('REVIEWED' AS ideastatus) "
+                "WHERE status::text = 'REJECTED'"
+            )
+        )
+    else:
+        connection.execute(
+            text("UPDATE ideas SET status = 'REVIEWED' WHERE CAST(status AS TEXT) IN ('REJECTED', 'rejected')")
+        )
+
+    if "evaluations" in existing_tables:
+        connection.execute(
+            text(
+                "UPDATE evaluations SET decision = 'reviewed' "
+                "WHERE decision IN ('reject', 'rejected')"
+            )
+        )
+
+
+def _reviewed_status_is_current(connection: Connection) -> bool:
+    inspector = inspect(connection)
+    existing_tables = set(inspector.get_table_names())
+    if "ideas" not in existing_tables:
+        return True
+
+    if connection.dialect.name == "postgresql":
+        has_reviewed_label = connection.execute(
+            text(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_enum e ON e.enumtypid = t.oid
+                    WHERE t.typname = 'ideastatus' AND e.enumlabel = 'REVIEWED'
+                )
+                """
+            )
+        ).scalar_one()
+        if not has_reviewed_label:
+            return False
+
+    legacy_idea_status_exists = connection.execute(
+        text("SELECT EXISTS (SELECT 1 FROM ideas WHERE CAST(status AS TEXT) IN ('REJECTED', 'rejected'))")
+    ).scalar_one()
+    if legacy_idea_status_exists:
+        return False
+
+    if "evaluations" not in existing_tables:
+        return True
+
+    legacy_decision_exists = connection.execute(
+        text("SELECT EXISTS (SELECT 1 FROM evaluations WHERE decision IN ('reject', 'rejected'))")
+    ).scalar_one()
+    return not legacy_decision_exists
+
+
 MIGRATIONS = (
     Migration(
         revision="20260308_0001_initial_schema",
@@ -81,6 +168,11 @@ MIGRATIONS = (
         revision="20260328_0003_password_reset_columns",
         description="Add password reset fields onto existing user records.",
         upgrade=_upgrade_password_reset_columns,
+    ),
+    Migration(
+        revision="20260407_0004_reviewed_status",
+        description="Rename low-score idea status from rejected to reviewed.",
+        upgrade=_upgrade_reviewed_status,
     ),
 )
 
@@ -112,6 +204,7 @@ def apply_pending_migrations(engine: Engine) -> list[str]:
                     },
                 )
                 applied_revisions.append(migration.revision)
+            _upgrade_reviewed_status(connection)
         finally:
             _unlock_schema_migrations(connection)
     return applied_revisions
@@ -121,7 +214,9 @@ def schema_is_current(engine: Engine) -> bool:
     with engine.begin() as connection:
         if not _schema_migrations_table_exists(connection):
             return False
-        return _applied_revision_set(connection) == {migration.revision for migration in MIGRATIONS}
+        return _applied_revision_set(connection) == {
+            migration.revision for migration in MIGRATIONS
+        } and _reviewed_status_is_current(connection)
 
 
 def reset_sqlite_schema(engine: Engine) -> None:

@@ -13,12 +13,26 @@ function formatMoney(value: number): string {
   }).format(value)
 }
 
+function formatStatusLabel(status: Idea['status']): string {
+  switch (status) {
+    case 'queued':
+      return 'queued for review'
+    case 'under_review':
+      return 'in review'
+    default:
+      return status.replace('_', ' ')
+  }
+}
+
 function Dashboard({ ideas, summary }: DashboardProps) {
   return (
     <section className="panel">
       <div className="section-heading">
         <h2>Creator dashboard</h2>
-        <p>Track publication status, evaluation outcomes, and any downstream payouts that happen to occur.</p>
+        <p>
+          Track publication, review progress, and any downstream payouts. Ideas stay public as
+          signals; this platform does not decide they are worthless.
+        </p>
       </div>
       <div className="metrics-grid">
         <article>
@@ -30,8 +44,16 @@ function Dashboard({ ideas, summary }: DashboardProps) {
           <strong>{summary?.accepted_count ?? 0}</strong>
         </article>
         <article>
+          <span>Reviewed</span>
+          <strong>{summary?.reviewed_count ?? 0}</strong>
+        </article>
+        <article>
           <span>Paid</span>
           <strong>{summary?.paid_count ?? 0}</strong>
+        </article>
+        <article>
+          <span>Total rewards</span>
+          <strong>{formatMoney(summary?.total_net_rewards ?? 0)}</strong>
         </article>
         <article>
           <span>Average score</span>
@@ -47,7 +69,9 @@ function Dashboard({ ideas, summary }: DashboardProps) {
                 <h3>{idea.title}</h3>
                 <p>{idea.category.replace('_', ' ')}</p>
               </div>
-              <span className={`status-badge status-${idea.status}`}>{idea.status}</span>
+              <span className={`status-badge status-${idea.status}`}>
+                {formatStatusLabel(idea.status)}
+              </span>
             </div>
             <p>{idea.feedback ?? 'Awaiting evaluator feedback.'}</p>
             <div className="idea-meta-grid">

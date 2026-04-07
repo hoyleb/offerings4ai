@@ -1,4 +1,4 @@
-export type IdeaStatus = 'queued' | 'under_review' | 'accepted' | 'rejected' | 'paid'
+export type IdeaStatus = 'queued' | 'under_review' | 'accepted' | 'reviewed' | 'paid'
 
 export interface TokenResponse {
   access_token: string
@@ -99,7 +99,7 @@ export interface Idea {
 export interface DashboardSummary {
   total_submissions: number
   accepted_count: number
-  rejected_count: number
+  reviewed_count: number
   paid_count: number
   total_net_rewards: number
   average_score: number

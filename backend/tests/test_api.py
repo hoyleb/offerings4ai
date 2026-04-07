@@ -114,7 +114,7 @@ def test_full_submission_flow():
     assert ideas.status_code == 200
     payload = ideas.json()
     assert len(payload) == 1
-    assert payload[0]["status"] in {"paid", "accepted", "rejected"}
+    assert payload[0]["status"] in {"paid", "accepted", "reviewed"}
 
     dashboard = client.get("/api/ideas/my/ideas/dashboard", headers=headers)
     assert dashboard.status_code == 200
@@ -276,9 +276,9 @@ def test_public_catalog_and_safe_feed():
     assert mcp.json()["sse_url"].endswith("/mcp/sse")
 
 
-def test_rejected_but_safe_idea_still_appears_in_public_feed():
+def test_reviewed_but_safe_idea_still_appears_in_public_feed():
     client = TestClient(app)
-    headers = register_and_login(client, email="rejected@example.com")
+    headers = register_and_login(client, email="reviewed@example.com")
 
     submission = client.post(
         "/api/ideas",
@@ -294,7 +294,7 @@ def test_rejected_but_safe_idea_still_appears_in_public_feed():
         },
     )
     assert submission.status_code == 201
-    assert submission.json()["status"] == "rejected"
+    assert submission.json()["status"] == "reviewed"
 
     feed = client.get("/api/public/ideas/feed")
     assert feed.status_code == 200
@@ -304,7 +304,7 @@ def test_rejected_but_safe_idea_still_appears_in_public_feed():
     assert any(item["creator_id"] for item in payload["items"])
 
 
-def test_prompt_injection_submission_rejected():
+def test_prompt_injection_submission_blocked():
     client = TestClient(app)
     headers = register_and_login(client, email="blocked@example.com")
 
@@ -326,7 +326,7 @@ def test_prompt_injection_submission_rejected():
             ),
             "why_ai_benefits": (
                 "This field deliberately imitates a prompt-injection attack so "
-                "the intake filter should reject it before any agent reads it."
+                "the intake filter should block it before any agent reads it."
             ),
             "expected_reward_range": "$500-$900",
             "license_type": "public_domain",

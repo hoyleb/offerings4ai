@@ -125,7 +125,7 @@ def get_dashboard_summary(db: Session, user: User) -> DashboardSummary:
     total_submissions = len(ideas)
     accepted_statuses = {IdeaStatus.ACCEPTED, IdeaStatus.PAID}
     accepted_count = sum(1 for idea in ideas if idea.status in accepted_statuses)
-    rejected_count = sum(1 for idea in ideas if idea.status == IdeaStatus.REJECTED)
+    reviewed_count = sum(1 for idea in ideas if idea.status == IdeaStatus.REVIEWED)
     paid_count = sum(1 for idea in ideas if idea.status == IdeaStatus.PAID)
     total_net_rewards = sum(idea.payout.net_amount for idea in ideas if idea.payout)
     scores = [idea.score_total for idea in ideas if idea.score_total is not None]
@@ -133,7 +133,7 @@ def get_dashboard_summary(db: Session, user: User) -> DashboardSummary:
     return DashboardSummary(
         total_submissions=total_submissions,
         accepted_count=accepted_count,
-        rejected_count=rejected_count,
+        reviewed_count=reviewed_count,
         paid_count=paid_count,
         total_net_rewards=round(total_net_rewards, 2),
         average_score=average_score,

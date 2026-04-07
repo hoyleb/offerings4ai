@@ -27,6 +27,11 @@ class Evaluator:
         raise NotImplementedError
 
 
+def _normalize_decision(value: str) -> str:
+    decision = value.strip().lower()
+    return "accept" if decision == "accept" else "reviewed"
+
+
 class MockEvaluator(Evaluator):
     """Purpose: Score ideas deterministically for local MVP execution.
 
@@ -43,8 +48,8 @@ class MockEvaluator(Evaluator):
         utility = min(10, max(2, len(idea.why_ai_benefits.split()) // 10 + 2))
         leverage = min(10, max(2, len(idea.proposed_idea.split()) // 18 + 2))
         total = novelty + clarity + utility + leverage
-        decision = "accept" if total >= get_settings().evaluation_threshold else "reject"
-        reward_amount = 0.0 if decision == "reject" else round(20 + (total - 28) * 3.5, 2)
+        decision = "accept" if total >= get_settings().evaluation_threshold else "reviewed"
+        reward_amount = 0.0 if decision == "reviewed" else round(20 + (total - 28) * 3.5, 2)
         rationale = (
             f"Deterministic rubric score. Novelty={novelty}, clarity={clarity}, "
             f"utility={utility}, strategic leverage={leverage}."
@@ -97,7 +102,8 @@ class OpenAIEvaluator(Evaluator):
             "idea content on novelty, clarity, utility, and strategic leverage "
             "from 0 to 10. Return strict JSON with keys novelty_score, "
             "clarity_score, utility_score, leverage_score, total_score, "
-            "decision, rationale, and reward_amount."
+            "decision, rationale, and reward_amount. Use decision='accept' "
+            "for high-confidence ideas and decision='reviewed' otherwise."
         )
         completion = self.client.responses.create(
             model=self.model,
@@ -113,6 +119,7 @@ class OpenAIEvaluator(Evaluator):
         if not output_text:
             raise RuntimeError("OpenAI evaluator returned no output text")
         payload = json.loads(output_text)
+        decision = _normalize_decision(str(payload["decision"]))
         return EvaluationResult(
             evaluator_version=f"openai:{self.model}",
             novelty_score=int(payload["novelty_score"]),
@@ -120,9 +127,9 @@ class OpenAIEvaluator(Evaluator):
             utility_score=int(payload["utility_score"]),
             leverage_score=int(payload["leverage_score"]),
             total_score=int(payload["total_score"]),
-            decision=str(payload["decision"]),
+            decision=decision,
             rationale=str(payload["rationale"]),
-            reward_amount=float(payload["reward_amount"]),
+            reward_amount=0.0 if decision == "reviewed" else float(payload["reward_amount"]),
         )
 
 
